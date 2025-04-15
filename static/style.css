@@ -1,0 +1,73 @@
+body {
+  background-color: #ffffff;
+  font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+  color: #333;
+}
+
+h2, h3, h4 {
+  color: #cc0066;
+  font-weight: 700;
+}
+
+.navbar {
+  background-color: #cc0066 !important;
+}
+
+.navbar-brand {
+  font-size: 24px;
+  font-weight: bold;
+  color: white !important;
+  letter-spacing: 1px;
+}
+
+.btn-primary {
+  background-color: #8000ff;
+  border-color: #8000ff;
+}
+
+.btn-primary:hover {
+  background-color: #6600cc;
+  border-color: #6600cc;
+}
+
+.btn-success {
+  background-color: #cc0066;
+  border-color: #cc0066;
+}
+
+.btn-success:hover {
+  background-color: #a80055;
+  border-color: #a80055;
+}
+
+.btn-outline-secondary {
+  color: #cc0066;
+  border-color: #cc0066;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #cc0066;
+  color: white;
+}
+
+a {
+  color: #8000ff;
+}
+
+a:hover {
+  color: #6600cc;
+}
+
+.list-group-item {
+  border: none;
+  border-bottom: 1px solid #eee;
+  padding: 10px 15px;
+}
+
+.slogan {
+  font-style: italic;
+  color: #8000ff;
+  font-size: 1.2rem;
+  text-align: center;
+  margin-top: 2rem;
+}
