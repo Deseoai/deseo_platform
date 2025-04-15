@@ -4,15 +4,12 @@ import os
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
-
 DB_NAME = "database.db"
 
 def init_db():
-    """Erstellt eine SQLite-DB mit erweiterter Users-Tabelle."""
     if not os.path.exists(DB_NAME):
         conn = sqlite3.connect(DB_NAME)
         c = conn.cursor()
-        # Neue Users-Tabelle mit mehr Spalten:
         c.execute('''
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY,
@@ -31,17 +28,24 @@ def init_db():
                 type TEXT
             )
         ''')
+        c.execute('''
+            CREATE TABLE selected_agents (
+                id INTEGER PRIMARY KEY,
+                user_id INTEGER,
+                category TEXT,
+                name TEXT,
+                package TEXT
+            )
+        ''')
         conn.commit()
         conn.close()
 
 @app.route('/')
 def home():
-    # Fürs Branding leiten wir direkt auf /login
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Login-Seite mit Bootstrap-Formular."""
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -53,9 +57,8 @@ def login():
         conn.close()
 
         if user:
-            # User-Daten in Session
             session['user_id'] = user[0]
-            session['full_name'] = user[3]  # index 3 = full_name
+            session['full_name'] = user[3]
             return redirect(url_for('dashboard'))
         else:
             return render_template('login.html', error="Falsche Login-Daten!")
@@ -64,7 +67,6 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """Erweiterte Registrierung: Name, Firma, Business-ID."""
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -72,7 +74,6 @@ def register():
         company_name = request.form['company_name']
         business_id = request.form['business_id']
 
-        # Daten speichern
         conn = sqlite3.connect(DB_NAME)
         c = conn.cursor()
         c.execute("""
@@ -88,7 +89,6 @@ def register():
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
-    """Dashboard mit Agenten-Liste und Formular zum Anlegen neuer Agenten."""
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
@@ -97,29 +97,40 @@ def dashboard():
     c = conn.cursor()
 
     if request.method == 'POST':
-        # Neuen Agenten anlegen
-        name = request.form['name']
-        agent_type = request.form['type']
-        c.execute("INSERT INTO agents (user_id, name, type) VALUES (?, ?, ?)", (user_id, name, agent_type))
+        # Inbound Agenten
+        inbound = request.form.getlist('inbound_agents')
+        for val in inbound:
+            agent_type, package = val.split('|')
+            c.execute("INSERT INTO selected_agents (user_id, category, name, package) VALUES (?, ?, ?, ?)",
+                      (user_id, 'inbound', agent_type, package))
+
+        # Outbound Agenten
+        outbound = request.form.getlist('outbound_agents')
+        for name in outbound:
+            c.execute("INSERT INTO selected_agents (user_id, category, name, package) VALUES (?, ?, ?, ?)",
+                      (user_id, 'outbound', name, None))
+
+        # E-Mail Agent
+        email = request.form.get('email_agent')
+        if email:
+            c.execute("INSERT INTO selected_agents (user_id, category, name, package) VALUES (?, ?, ?, ?)",
+                      (user_id, 'email', email, None))
+
         conn.commit()
 
-    # Agenten abfragen, die dem eingelog. User gehören
-    c.execute("SELECT name, type FROM agents WHERE user_id=?", (user_id,))
-    agents = c.fetchall()
+    # Agenten anzeigen
+    c.execute("SELECT * FROM selected_agents WHERE user_id=?", (user_id,))
+    selected_agents = c.fetchall()
     conn.close()
 
-    # Zeigen, wie der User heißt:
-    greeting_name = session.get('full_name', 'Lieber Nutzer')
-
-    return render_template('dashboard.html', agents=agents, greeting_name=greeting_name)
+    greeting_name = session.get('full_name', 'Kunde')
+    return render_template('dashboard.html', greeting_name=greeting_name, selected_agents=selected_agents)
 
 @app.route('/logout')
 def logout():
-    """Session leeren = ausloggen."""
     session.clear()
     return redirect(url_for('login'))
 
 if __name__ == "__main__":
     init_db()
-    # Server auf allen IPs (damit Render zugreifen kann)
     app.run(host="0.0.0.0", port=5000, debug=True)
