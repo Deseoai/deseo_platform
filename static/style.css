@@ -1,7 +1,7 @@
 body {
-  background-color: #ffffff;
+  background-color: #000000;
   font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
-  color: #333;
+  color: #ffffff;
 }
 
 h2, h3, h4 {
@@ -23,6 +23,7 @@ h2, h3, h4 {
 .btn-primary {
   background-color: #8000ff;
   border-color: #8000ff;
+  color: white;
 }
 
 .btn-primary:hover {
@@ -33,6 +34,7 @@ h2, h3, h4 {
 .btn-success {
   background-color: #cc0066;
   border-color: #cc0066;
+  color: white;
 }
 
 .btn-success:hover {
@@ -55,19 +57,25 @@ a {
 }
 
 a:hover {
-  color: #6600cc;
+  color: #ff66cc;
 }
 
 .list-group-item {
   border: none;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #333;
   padding: 10px 15px;
+  background-color: #121212;
+  color: white;
 }
 
-.slogan {
-  font-style: italic;
-  color: #8000ff;
-  font-size: 1.2rem;
-  text-align: center;
-  margin-top: 2rem;
+input, select, textarea {
+  background-color: #121212;
+  color: white;
+  border: 1px solid #555;
+}
+
+input:focus, select:focus, textarea:focus {
+  background-color: #222;
+  color: white;
+  border-color: #cc0066;
 }
