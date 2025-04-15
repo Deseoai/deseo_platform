@@ -1,12 +1,38 @@
-<!DOCTYPE html>
-<html>
-<head><title>Registrierung</title></head>
-<body>
-  <h2>Registrieren</h2>
-  <form method="POST">
-    Benutzername: <input name="username"><br>
-    Passwort: <input name="password" type="password"><br>
-    <input type="submit" value="Registrieren">
-  </form>
-</body>
-</html>
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-6">
+    <h2 class="mb-3">Registrierung</h2>
+    <form method="POST">
+      <!-- Username -->
+      <div class="mb-3">
+        <label class="form-label">Benutzername (Login)</label>
+        <input name="username" class="form-control" required>
+      </div>
+      <!-- Passwort -->
+      <div class="mb-3">
+        <label class="form-label">Passwort</label>
+        <input name="password" type="password" class="form-control" required>
+      </div>
+      <!-- Vollständiger Name -->
+      <div class="mb-3">
+        <label class="form-label">Vollständiger Name</label>
+        <input name="full_name" class="form-control" required>
+      </div>
+      <!-- Firmenname -->
+      <div class="mb-3">
+        <label class="form-label">Firmenname</label>
+        <input name="company_name" class="form-control">
+      </div>
+      <!-- Business ID -->
+      <div class="mb-3">
+        <label class="form-label">Business ID</label>
+        <input name="business_id" class="form-control">
+      </div>
+      <button class="btn btn-success" type="submit">Jetzt registrieren</button>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
