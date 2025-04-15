@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head><title>Dashboard</title></head>
+<body>
+  <h2>Willkommen im Dashboard!</h2>
+  <form method="POST">
+    <h3>Neuen Agenten anlegen</h3>
+    Name: <input name="name"><br>
+    Typ: <input name="type"><br>
+    <input type="submit" value="Erstellen">
+  </form>
+
+  <h3>Deine Agenten:</h3>
+  <ul>
+    {% for agent in agents %}
+      <li>{{ agent[0] }} (Typ: {{ agent[1] }})</li>
+    {% endfor %}
+  </ul>
+
+  <a href="/logout">Logout</a>
+</body>
+</html>
