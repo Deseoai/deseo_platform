@@ -3,37 +3,42 @@
 
 <h2 class="mb-4">Willkommen, {{ greeting_name }}!</h2>
 
-<div class="row">
-  <div class="col-md-6">
-    <h4>Neuen Agenten anlegen</h4>
-    <form method="POST">
-      <div class="mb-3">
-        <label class="form-label">Agentenname</label>
-        <input name="name" class="form-control" required>
+<form method="POST">
+  <h4>Inbound Agenten</h4>
+  {% for type in ['Real Estate', 'Restaurant'] %}
+    {% for package in ['Basic', 'Premium', 'Supreme'] %}
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="inbound_agents" value="{{ type }}|{{ package }}">
+        <label class="form-check-label">{{ type }} – Paket: {{ package }}</label>
       </div>
-      <div class="mb-3">
-        <label class="form-label">Typ</label>
-        <input name="type" class="form-control" placeholder="z.B. Chatbot, Voicebot ..." required>
-      </div>
-      <button class="btn btn-primary" type="submit">Erstellen</button>
-    </form>
+    {% endfor %}
+  {% endfor %}
+
+  <h4 class="mt-4">Outbound Agenten</h4>
+  {% for agent in ['Cold Call Real Estate', 'Campaign Real Estate', 'Reminder Real Estate', 'Campaign Restaurant'] %}
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="outbound_agents" value="{{ agent }}">
+      <label class="form-check-label">{{ agent }}</label>
+    </div>
+  {% endfor %}
+
+  <h4 class="mt-4">E-Mail Agent</h4>
+  <div class="form-check">
+    <input class="form-check-input" type="checkbox" name="email_agent" value="Standard Email Agent">
+    <label class="form-check-label">Standard Email Agent</label>
   </div>
 
-  <div class="col-md-6">
-    <h4>Deine Agenten</h4>
-    {% if agents %}
-      <ul class="list-group">
-        {% for agent in agents %}
-          <li class="list-group-item">
-            <strong>{{ agent[0] }}</strong> (Typ: {{ agent[1] }})
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p>Du hast noch keine Agenten.</p>
-    {% endif %}
-  </div>
-</div>
+  <button type="submit" class="btn btn-success mt-3">Meine Auswahl speichern</button>
+</form>
+
+<h4 class="mt-5">Meine ausgewählten Agenten</h4>
+<ul class="list-group">
+  {% for agent in selected_agents %}
+    <li class="list-group-item">
+      <strong>{{ agent[2] }}</strong> (Kategorie: {{ agent[1] }}, Paket: {{ agent[3] or '–' }})
+    </li>
+  {% endfor %}
+</ul>
 
 <div class="mt-4">
   <a class="btn btn-outline-secondary" href="{{ url_for('logout') }}">Logout</a>
