@@ -1,5 +1,7 @@
 import os
 
-# URL deiner PostgreSQL-Datenbank
-# Render setzt diese automatisch als Umgebungsvariable (Environment Variable)
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:pass@localhost/deseo")
+# Hole die Datenbankverbindung aus der Umgebungsvariable
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL is not set. Please define it as an environment variable.")
