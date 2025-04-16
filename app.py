@@ -74,7 +74,23 @@ def login():
             else:
                 return redirect(url_for('dashboard'))
         else:
-            return render_template('login.html', error="Login fehlgeschlagen.")
+            return render_template('login.html', error="Login failed.")
+    return render_template('login.html')
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM users WHERE username=%s AND password=%s AND is_admin=TRUE",
+                    (request.form['username'], request.form['password']))
+        admin = cur.fetchone()
+        conn.close()
+        if admin:
+            session['admin_logged_in'] = True
+            return redirect(url_for('admin'))
+        else:
+            return render_template('login.html', error="Admin login failed.")
     return render_template('login.html')
 
 @app.route('/dashboard', methods=['GET', 'POST'])
@@ -109,10 +125,10 @@ def dashboard():
     conn.close()
     return render_template('dashboard.html', greeting_name=session['full_name'], selected_agents=selected_agents)
 
-@app.route('/admin', methods=['GET'])
+@app.route('/admin')
 def admin():
-    if not session.get('is_admin'):
-        return redirect(url_for('login'))
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT a.id, u.full_name, a.name, a.category, a.package, a.status FROM selected_agents a JOIN users u ON a.user_id = u.id")
@@ -122,8 +138,8 @@ def admin():
 
 @app.route('/admin/activate/<int:agent_id>', methods=['POST'])
 def activate_agent(agent_id):
-    if not session.get('is_admin'):
-        return redirect(url_for('login'))
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
     conn = get_db()
     cur = conn.cursor()
     cur.execute("UPDATE selected_agents SET status='active' WHERE id=%s", (agent_id,))
