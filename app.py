@@ -5,10 +5,44 @@ from config import DATABASE_URL
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
+# ✅ Automatically create tables on app start
+def init_db():
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+
+    # Create users table
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(100) NOT NULL UNIQUE,
+        password VARCHAR(100) NOT NULL,
+        full_name VARCHAR(200),
+        company_name VARCHAR(200),
+        business_id VARCHAR(100),
+        is_admin BOOLEAN DEFAULT FALSE
+    );
+    """)
+
+    # Create selected_agents table
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS selected_agents (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        name VARCHAR(200),
+        category VARCHAR(100),
+        package VARCHAR(100),
+        status VARCHAR(50)
+    );
+    """)
+
+    conn.commit()
+    conn.close()
+
+
 def get_db():
     return psycopg2.connect(DATABASE_URL)
 
-# ✅ NEU: Startseite / Willkommen
+# ✅ Welcome screen with user/admin choice
 @app.route('/')
 def home():
     return render_template('welcome.html')
@@ -18,7 +52,7 @@ def login():
     if request.method == 'POST':
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE username=%s AND password=%s", 
+        cur.execute("SELECT * FROM users WHERE username=%s AND password=%s",
                     (request.form['username'], request.form['password']))
         user = cur.fetchone()
         conn.close()
@@ -31,7 +65,7 @@ def login():
             else:
                 return redirect(url_for('dashboard'))
         else:
-            return render_template('login.html', error="Login fehlgeschlagen.")
+            return render_template('login.html', error="Login failed.")
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -53,7 +87,7 @@ def dashboard():
     user_id = session['user_id']
     conn = get_db()
     cur = conn.cursor()
-    
+
     if request.method == 'POST':
         inbound = request.form.getlist('inbound_agents')
         for val in inbound:
@@ -83,7 +117,7 @@ def admin_login():
     if request.method == 'POST':
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE username=%s AND password=%s AND is_admin=TRUE", 
+        cur.execute("SELECT * FROM users WHERE username=%s AND password=%s AND is_admin=TRUE",
                     (request.form['username'], request.form['password']))
         admin = cur.fetchone()
         conn.close()
@@ -91,7 +125,7 @@ def admin_login():
             session['admin_logged_in'] = True
             return redirect(url_for('admin'))
         else:
-            return render_template('login.html', error="Admin Login fehlgeschlagen.")
+            return render_template('login.html', error="Admin login failed.")
     return render_template('login.html')
 
 @app.route('/admin')
@@ -121,6 +155,7 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# ✅ Fix für Render – wichtig!
+# ✅ Start server & create tables
 if __name__ == "__main__":
+    init_db()  # 🧠 auto create tables at startup
     app.run(host="0.0.0.0", port=10000)
