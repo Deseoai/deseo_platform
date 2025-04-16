@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Admin-Dashboard</h2>
+<h4>Kunden & gebuchte Agenten</h4>
+<table class="table table-dark table-striped">
+  <thead>
+    <tr>
+      <th>Kunde</th><th>Agent</th><th>Kategorie</th><th>Paket</th><th>Status</th><th>Aktion</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in agents %}
+      <tr>
+        <td>{{ a[1] }}</td><td>{{ a[2] }}</td><td>{{ a[3] }}</td><td>{{ a[4] or '-' }}</td><td>{{ a[5] }}</td>
+        <td>
+          {% if a[5] == 'pending' %}
+          <form method="POST" action="{{ url_for('activate_agent', agent_id=a[0]) }}">
+            <button class="btn btn-sm btn-success">Freigeben</button>
+          </form>
+          {% else %}<span class="text-success">Aktiv</span>{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<a class="btn btn-outline-light mt-3" href="{{ url_for('logout') }}">Logout</a>
+{% endblock %}
