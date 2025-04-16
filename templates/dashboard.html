@@ -1,20 +1,22 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 class="mb-4">Willkommen, {{ greeting_name }}!</h2>
+<h2>Willkommen, {{ greeting_name }}!</h2>
+<p class="mb-4">Wähle hier die gewünschten Agenten für deinen Account aus:</p>
 
 <form method="POST">
-  <h4>Inbound Agenten</h4>
-  {% for type in ['Real Estate', 'Restaurant'] %}
-    {% for package in ['Basic', 'Premium', 'Supreme'] %}
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" name="inbound_agents" value="{{ type }}|{{ package }}">
-        <label class="form-check-label">{{ type }} – Paket: {{ package }}</label>
+  <h4>📞 Inbound Agenten (mit Paket)</h4>
+  {% for typ in ['Real Estate', 'Restaurant'] %}
+    <div class="mb-2"><strong>{{ typ }}</strong></div>
+    {% for paket in ['Basic', 'Premium', 'Supreme'] %}
+      <div class="form-check ms-3 mb-1">
+        <input class="form-check-input" type="checkbox" name="inbound_agents" value="{{ typ }}|{{ paket }}">
+        <label class="form-check-label">{{ paket }}</label>
       </div>
     {% endfor %}
   {% endfor %}
 
-  <h4 class="mt-4">Outbound Agenten</h4>
+  <h4 class="mt-4">📢 Outbound Agenten</h4>
   {% for agent in ['Cold Call Real Estate', 'Campaign Real Estate', 'Reminder Real Estate', 'Campaign Restaurant'] %}
     <div class="form-check">
       <input class="form-check-input" type="checkbox" name="outbound_agents" value="{{ agent }}">
@@ -22,26 +24,41 @@
     </div>
   {% endfor %}
 
-  <h4 class="mt-4">E-Mail Agent</h4>
+  <h4 class="mt-4">📧 E-Mail Agent</h4>
   <div class="form-check">
     <input class="form-check-input" type="checkbox" name="email_agent" value="Standard Email Agent">
     <label class="form-check-label">Standard Email Agent</label>
   </div>
 
-  <button type="submit" class="btn btn-success mt-3">Meine Auswahl speichern</button>
+  <button type="submit" class="btn btn-success mt-3">Auswahl speichern</button>
 </form>
 
-<h4 class="mt-5">Meine ausgewählten Agenten</h4>
-<ul class="list-group">
-  {% for agent in selected_agents %}
-    <li class="list-group-item">
-      <strong>{{ agent[2] }}</strong> (Kategorie: {{ agent[1] }}, Paket: {{ agent[3] or '–' }})
-    </li>
-  {% endfor %}
-</ul>
+<hr class="my-5">
 
-<div class="mt-4">
-  <a class="btn btn-outline-secondary" href="{{ url_for('logout') }}">Logout</a>
-</div>
+<h4>🧾 Deine gebuchten Agenten</h4>
+{% if selected_agents %}
+  <ul class="list-group">
+    {% for agent in selected_agents %}
+      <li class="list-group-item">
+        <strong>{{ agent[0] }}</strong>
+        (Kategorie: {{ agent[1] }},
+        Paket: {{ agent[2] or '-' }},
+        Status: 
+        {% if agent[3] == 'pending' %}
+          <span class="text-warning">Ausstehend</span>
+        {% elif agent[3] == 'active' %}
+          <span class="text-success">Aktiv</span>
+        {% else %}
+          <span class="text-muted">{{ agent[3] }}</span>
+        {% endif %}
+        )
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Du hast noch keine Agenten gebucht.</p>
+{% endif %}
+
+<a class="btn btn-outline-secondary mt-4" href="{{ url_for('logout') }}">Logout</a>
 
 {% endblock %}
