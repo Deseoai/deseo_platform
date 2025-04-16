@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Admin Login - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-6 col-lg-4">
+    <div class="card shadow-lg border-primary">
+      <div class="card-header bg-primary text-white text-center">
+        <h2 class="mb-0">Admin Login</h2>
+      </div>
+      <div class="card-body p-4">
+        <form method="POST">
+          <div class="mb-3">
+            <label for="username" class="form-label">Admin Username</label>
+            <input type="text" class="form-control" id="username" name="username" required autofocus>
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary btn-lg">Login as Admin</button>
+          </div>
+        </form>
+        <hr class="my-4">
+        <div class="text-center">
+          <p class="mb-0">
+            Not an Admin? <a href="{{ url_for('login') }}">User Login</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

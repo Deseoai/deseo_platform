@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Welcome - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="text-center mt-5 p-5 rounded" style="background-color: rgba(255, 255, 255, 0.05);">
+  <img src="{{ url_for('static', filename='images/deseo_logo.png') }}" alt="Deseo Logo"
+       style="height: 80px; margin-bottom: 20px;">
+  <h1 class="display-4 mb-3">Welcome to Deseo Voice Platform</h1>
+  <p class="lead mb-5">Make More With Less – Powered by Smart Voice Automation.</p>
+  <div class="d-grid gap-3 col-md-6 col-lg-4 mx-auto">
+    <a href="{{ url_for('login') }}" class="btn btn-success btn-lg fs-5 py-3">
+      I'm a User
+    </a>
+    <a href="{{ url_for('admin_login') }}" class="btn btn-outline-secondary btn-lg fs-5 py-3">
+      I'm an Admin
+    </a>
+  </div>
+</div>
+{% endblock %}

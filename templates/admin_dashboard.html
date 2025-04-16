@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h2 class="mb-4">⚙️ Admin Dashboard</h2>
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h3 class="mb-0">Agent Requests &amp; Management</h3>
+    <a href="{{ url_for('admin_users') }}" class="btn btn-info">
+      📋 Manage Users
+    </a>
+  </div>
+
+  {% if agents %}
+    <div class="table-responsive shadow">
+      <table class="table table-dark table-striped table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Full Name</th>
+            <th>Agent Name</th>
+            <th>Category</th>
+            <th>Package</th>
+            <th>Status</th>
+            <th class="text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in agents %}
+          <tr>
+            <td>{{ row[0] }}</td>
+            <td>{{ row[1] }}</td>
+            <td>{{ row[2] if row[2] else row[1] }}</td>
+            <td>{{ row[3] }}</td>
+            <td>{{ row[4] }}</td>
+            <td>{{ row[5] or '-' }}</td>
+            <td>
+              {% if row[6] == 'pending' %}
+                <span class="badge bg-warning text-dark">Pending</span>
+              {% elif row[6] == 'active' %}
+                <span class="badge bg-success">Active</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ row[6]|capitalize }}</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if row[6] == 'pending' %}
+                <form method="POST" action="{{ url_for('activate_agent', agent_id=row[0]) }}" class="d-inline">
+                  <button type="submit" class="btn btn-success btn-sm">
+                    Approve
+                  </button>
+                </form>
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="alert alert-info">
+      No agent requests found.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

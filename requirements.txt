@@ -1,0 +1,7 @@
+Flask>=2.0
+psycopg2-binary>=2.9
+Werkzeug>=2.0
+itsdangerous>=2.0
+python-dotenv>=0.15
+Flask-Mail>=0.9
+bcrypt>=3.2
