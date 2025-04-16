@@ -8,9 +8,10 @@ app.secret_key = "supersecretkey"
 def get_db():
     return psycopg2.connect(DATABASE_URL)
 
+# ✅ NEU: Startseite / Willkommen
 @app.route('/')
 def home():
-    return redirect(url_for('login'))
+    return render_template('welcome.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -54,20 +55,17 @@ def dashboard():
     cur = conn.cursor()
     
     if request.method == 'POST':
-        # Inbound
         inbound = request.form.getlist('inbound_agents')
         for val in inbound:
             name, package = val.split('|')
             cur.execute("INSERT INTO selected_agents (user_id, category, name, package, status) VALUES (%s, %s, %s, %s, %s)",
                         (user_id, 'inbound', name, package, 'pending'))
 
-        # Outbound
         outbound = request.form.getlist('outbound_agents')
         for name in outbound:
             cur.execute("INSERT INTO selected_agents (user_id, category, name, package, status) VALUES (%s, %s, %s, %s, %s)",
                         (user_id, 'outbound', name, None, 'pending'))
 
-        # E-Mail Agent
         email = request.form.get('email_agent')
         if email:
             cur.execute("INSERT INTO selected_agents (user_id, category, name, package, status) VALUES (%s, %s, %s, %s, %s)",
@@ -123,6 +121,6 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# ✅ Fix für Render – bindet an 0.0.0.0 auf Port 10000
+# ✅ Fix für Render – wichtig!
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
