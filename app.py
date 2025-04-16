@@ -6,12 +6,11 @@ from config import DATABASE_URL
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
-# Automatically create tables on app start
+# Datenbank initialisieren
 def init_db():
     conn = psycopg2.connect(DATABASE_URL)
     cur = conn.cursor()
 
-    # Create users table
     cur.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -24,7 +23,6 @@ def init_db():
     );
     """)
 
-    # Create selected_agents table
     cur.execute("""
     CREATE TABLE IF NOT EXISTS selected_agents (
         id SERIAL PRIMARY KEY,
@@ -42,12 +40,12 @@ def init_db():
 def get_db():
     return psycopg2.connect(DATABASE_URL)
 
-# Welcome screen
+# Welcome page
 @app.route('/')
 def home():
     return render_template('welcome.html')
 
-# Login Route
+# Login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -69,7 +67,7 @@ def login():
             return render_template('login.html', error="Login failed.")
     return render_template('login.html')
 
-# Register Route
+# Registrierung
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -82,7 +80,7 @@ def register():
         return redirect(url_for('login'))
     return render_template('register.html')
 
-# Dashboard Route
+# Dashboard User
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
     if 'user_id' not in session or session.get('is_admin'):
@@ -144,7 +142,19 @@ def admin():
     conn.close()
     return render_template('admin_dashboard.html', agents=agents)
 
-# Activate Agent
+# Admin Users Übersicht (neu!)
+@app.route('/admin/users')
+def admin_users():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, username, full_name, company_name, business_id FROM users ORDER BY id ASC")
+    users = cur.fetchall()
+    conn.close()
+    return render_template('admin_users.html', users=users)
+
+# Activate Agents
 @app.route('/admin/activate/<int:agent_id>', methods=['POST'])
 def activate_agent(agent_id):
     if not session.get('admin_logged_in'):
@@ -156,13 +166,13 @@ def activate_agent(agent_id):
     conn.close()
     return redirect(url_for('admin'))
 
-# Logout Route
+# Logout
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# Server startup with correct PORT handling
+# Port fix und Start
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", 10000))
