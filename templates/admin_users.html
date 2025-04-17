@@ -7,23 +7,33 @@
     <tr>
       <th>ID</th><th>Username</th><th>Email</th>
       <th>Full Name</th><th>Company</th><th>Business ID</th>
-      <th>Admin?</th><th>Registered On</th>
+      <th>Admin?</th><th>Registered On</th><th>Aktion</th>
     </tr>
   </thead>
   <tbody>
-  {% for id, username, email, full_name, company, business_id, is_admin, reg in users %}
+  {% for user in users %}
     <tr>
-      <td>{{ id }}</td>
-      <td>{{ username }}</td>
-      <td>{{ email }}</td>
-      <td>{{ full_name or '—' }}</td>
-      <td>{{ company or '—' }}</td>
-      <td>{{ business_id or '—' }}</td>
-      <td>{{ 'Yes' if is_admin else 'No' }}</td>
-      <td>{{ reg }}</td>
+      <td>{{ user.id }}</td>
+      <td>{{ user.username }}</td>
+      <td>{{ user.email }}</td>
+      <td>{{ user.full_name or '—' }}</td>
+      <td>{{ user.company_name or '—' }}</td>
+      <td>{{ user.business_id or '—' }}</td>
+      <td>{{ 'Yes' if user.is_admin else 'No' }}</td>
+      <td>{{ user.created_at }}</td>
+      <td>
+        {% if user.id != session.user_id %}
+          <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Möchtest du diesen Benutzer wirklich löschen?');">Löschen</button>
+          </form>
+        {% else %}
+          —
+        {% endif %}
+      </td>
     </tr>
   {% else %}
-    <tr><td colspan="8">Keine Benutzer.</td></tr>
+    <tr><td colspan="9">Keine Benutzer.</td></tr>
   {% endfor %}
   </tbody>
 </table>
