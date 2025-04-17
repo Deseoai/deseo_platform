@@ -3,7 +3,8 @@ from flask import (
     Flask, render_template, request, redirect,
     session, url_for, flash
 )
-import psycopg2, os
+import psycopg2
+import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer
 
@@ -72,7 +73,7 @@ def init_db():
                         'Default Admin', TRUE);
             """, (hashed,))
 
-# ──────────────────────────  Routen (alles wie gehabt) ───────────
+# ──────────────────────────  Routen ──────────────────────────────
 @app.route('/')
 def home():
     return render_template('welcome.html')
@@ -383,9 +384,12 @@ def change_password():
             with conn.cursor() as cur:
                 cur.execute("SELECT password_hash FROM users WHERE id=%s",
                             (session['user_id'],))
-                db_hash, = cur.fetchone()
+                row = cur.fetchone()
+                if not row:
+                    flash("User nicht gefunden.", "danger")
+                    return render_template('change_password.html')
 
-                if not check_password_hash(db_hash, current):
+                if not check_password_hash(row[0], current):
                     flash("Aktuelles Passwort falsch.", "danger")
                     return render_template('change_password.html')
 
@@ -396,8 +400,6 @@ def change_password():
                 return redirect(url_for('dashboard' if not session.get('is_admin') else 'admin'))
 
     return render_template('change_password.html')
-
-
 
 # ─────────────────────  App‑Start  ──────────────────────
 if __name__ == "__main__":
