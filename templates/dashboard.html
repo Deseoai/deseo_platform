@@ -2,117 +2,154 @@
 {% block title %}Dashboard - {{ super() }}{% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<div class="container mt-5">
   <h2 class="mb-4">Welcome, {{ greeting_name }}!</h2>
-  <p class="lead mb-4">Select the desired agents for your account:</p>
-
-  <form method="POST">
-    <div class="row">
-      <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card h-100 shadow">
-          <div class="card-header">
-            <h4>📞 Inbound Agents</h4>
-          </div>
-          <div class="card-body">
-            {% for typ in ['Real Estate', 'Restaurant', 'Hotel', 'Customer Service'] %}
-              <div class="mb-3">
-                <strong>{{ typ }}</strong>
-                {% for paket in ['Basic', 'Premium', 'Supreme'] %}
-                  <div class="form-check ms-3">
-                    <input class="form-check-input" type="checkbox" name="inbound_agents"
-                           id="inbound_{{ typ|replace(' ', '_') }}_{{ paket }}"
-                           value="{{ typ }}|{{ paket }}">
-                    <label class="form-check-label" for="inbound_{{ typ|replace(' ', '_') }}_{{ paket }}">
-                      {{ paket }}
-                    </label>
-                  </div>
-                {% endfor %}
-              </div>
-            {% endfor %}
-          </div>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-      </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
 
-      <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card h-100 shadow">
-          <div class="card-header">
-            <h4>📢 Outbound Agents</h4>
-          </div>
-          <div class="card-body">
-            {% for agent in ['Cold Call Real Estate', 'Campaign Real Estate', 'Reminder Real Estate', 'Campaign Restaurant', 'Lead Follow-up'] %}
-              <div class="form-check mb-2">
-                <input class="form-check-input" type="checkbox" name="outbound_agents"
-                       id="outbound_{{ agent|replace(' ', '_') }}" value="{{ agent }}">
-                <label class="form-check-label" for="outbound_{{ agent|replace(' ', '_') }}">
-                  {{ agent }}
+  <!-- Agent Selection Form -->
+  <div class="card shadow-lg mb-5">
+    <div class="card-body p-4">
+      <h3 class="card-title mb-4">Select Agents</h3>
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <!-- Inbound Agents -->
+        <div class="mb-4">
+          <h5>Inbound Agents</h5>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="inbound_agents" value="Voice Agent|Basic" id="inboundVoiceBasic">
+                <label class="form-check-label" for="inboundVoiceBasic">
+                  Voice Agent (Basic)
                 </label>
               </div>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card h-100 shadow">
-          <div class="card-header">
-            <h4>📧 Email Agent</h4>
-          </div>
-          <div class="card-body">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" name="email_agent"
-                     id="email_agent_standard" value="Standard Email Agent">
-              <label class="form-check-label" for="email_agent_standard">
-                Standard Email Agent
-              </label>
-              <small class="form-text text-muted d-block">
-                Handles standard email inquiries.
-              </small>
+            </div>
+            <div class="col-md-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="inbound_agents" value="Voice Agent|Pro" id="inboundVoicePro">
+                <label class="form-check-label" for="inboundVoicePro">
+                  Voice Agent (Pro)
+                </label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="inbound_agents" value="Voice Agent|Enterprise" id="inboundVoiceEnterprise">
+                <label class="form-check-label" for="inboundVoiceEnterprise">
+                  Voice Agent (Enterprise)
+                </label>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <div class="text-center mt-4">
-      <button type="submit" class="btn btn-primary btn-lg px-5">Save Selection</button>
-    </div>
-  </form>
-
-  <hr class="my-5">
-
-  <h3 class="mb-3">🧾 Your Selected Agents</h3>
-  {% if selected_agents %}
-    <div class="list-group shadow">
-      {% for agent in selected_agents %}
-        <div class="list-group-item d-flex justify-content-between align-items-center">
-          <div>
-            <strong>{{ agent[1] }}</strong>
-            <small class="d-block text-muted">
-              Category: {{ agent[2] }}
-              {% if agent[3] %}| Plan: {{ agent[3] }}{% endif %}
-            </small>
-          </div>
-          <div class="d-flex align-items-center gap-2">
-            {% if agent[4] == 'pending' %}
-              <span class="badge bg-warning text-dark">Pending</span>
-              <form method="POST" action="{{ url_for('delete_agent', agent_id=agent[0]) }}" class="d-inline">
-                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this agent?');">
-                  Delete
-                </button>
-              </form>
-            {% elif agent[4] == 'active' %}
-              <span class="badge bg-success">Active</span>
-            {% else %}
-              <span class="badge bg-secondary">{{ agent[4]|capitalize }}</span>
-            {% endif %}
+        <!-- Outbound Agents -->
+        <div class="mb-4">
+          <h5>Outbound Agents</h5>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="outbound_agents" value="Sales Agent" id="outboundSales">
+                <label class="form-check-label" for="outboundSales">
+                  Sales Agent
+                </label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="outbound_agents" value="Survey Agent" id="outboundSurvey">
+                <label class="form-check-label" for="outboundSurvey">
+                  Survey Agent
+                </label>
+              </div>
+            </div>
           </div>
         </div>
-      {% endfor %}
+        <!-- Email Agent -->
+        <div class="mb-4">
+          <h5>Email Agent</h5>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="email_agent" value="Support Agent" id="emailSupport">
+                <label class="form-check-label" for="emailSupport">
+                  Support Agent
+                </label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="email_agent" value="Marketing Agent" id="emailMarketing">
+                <label class="form-check-label" for="emailMarketing">
+                  Marketing Agent
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-primary btn-lg">Submit Selection</button>
+        </div>
+      </form>
     </div>
-  {% else %}
-    <div class="alert alert-info" role="alert">
-      You haven't selected any agents yet.
+  </div>
+
+  <!-- Selected Agents -->
+  <div class="card shadow-lg">
+    <div class="card-body p-4">
+      <h3 class="card-title mb-4">Your Selected Agents</h3>
+      {% if selected_agents %}
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Package</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for agent in selected_agents %}
+                <tr>
+                  <td>{{ agent[1] }}</td>
+                  <td>{{ agent[2] }}</td>
+                  <td>{{ agent[3] or 'N/A' }}</td>
+                  <td>
+                    <span class="badge bg-{{ 'success' if agent[4] == 'active' else 'warning' }}">
+                      {{ agent[4] | capitalize }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if agent[4] == 'pending' %}
+                      <form method="POST" action="{{ url_for('delete_agent', agent_id=agent[0]) }}" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this agent?');">
+                          Delete
+                        </button>
+                      </form>
+                    {% else %}
+                      <span class="text-muted">No actions available</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted text-center">No agents selected yet.</p>
+      {% endif %}
     </div>
-  {% endif %}
+  </div>
 </div>
 {% endblock %}
