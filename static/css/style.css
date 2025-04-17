@@ -1,8 +1,13 @@
 /* === Grunddesign (Dark Mode mit Schwarz) === */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
 body {
   background-color: #000; /* Schwarzer Hintergrund */
-  color: #d1d5db; /* Hellgrau für Text, für guten Kontrast */
-  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  color: #d1d5db; /* Hellgrau für Text */
+  font-family: 'Poppins', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 18px; /* Größere Basis-Schriftgröße */
+  font-weight: 400; /* Normales Gewicht für Text */
+  line-height: 1.6;
   margin: 0;
   padding: 0;
   transition: background-color 0.4s, color 0.4s;
@@ -10,9 +15,17 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   color: #ff4d88; /* Leuchtendes Pink für Überschriften */
-  font-weight: 700;
+  font-weight: 700; /* Kräftigeres Gewicht */
   transition: color 0.3s ease;
+  margin-bottom: 1rem;
 }
+
+h1 { font-size: 3rem; } /* Größere Überschriften */
+h2 { font-size: 2.5rem; }
+h3 { font-size: 2rem; }
+h4 { font-size: 1.75rem; }
+h5 { font-size: 1.5rem; }
+h6 { font-size: 1.25rem; }
 
 h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
   color: #ff80ab; /* Helleres Pink beim Hover */
@@ -22,17 +35,18 @@ h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
   background-color: #1a1a1a !important; /* Dunkle Navbar */
   border-bottom: 1px solid #333;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  padding: 1rem 0; /* Mehr Padding für eine größere Navbar */
   transition: background-color 0.3s ease-in-out;
 }
 
 .navbar-brand {
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 2rem; /* Größere Schrift für Navbar-Brand */
+  font-weight: 700; /* Kräftiger */
   color: #ff4d88 !important; /* Pink für den Brand-Text */
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   transition: color 0.3s ease;
 }
 
@@ -41,6 +55,8 @@ h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
 }
 
 .nav-link {
+  font-size: 1.25rem; /* Größere Schrift für Nav-Links */
+  font-weight: 600; /* Kräftiger */
   color: #d1d5db !important;
   transition: color 0.3s ease, transform 0.3s ease;
 }
@@ -54,7 +70,10 @@ h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
   background-color: #ff4d88; /* Pink für primäre Buttons */
   border-color: #ff4d88;
   color: #000;
-  border-radius: 6px;
+  font-size: 1.25rem; /* Größere Schrift */
+  font-weight: 600; /* Kräftiger */
+  border-radius: 8px;
+  padding: 12px 24px; /* Größere Buttons */
   transition: all 0.3s ease;
 }
 .btn-primary:hover {
@@ -69,7 +88,10 @@ h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
   background-color: #00cc99; /* Türkis für Erfolgs-Buttons */
   border-color: #00cc99;
   color: #000;
-  border-radius: 6px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 12px 24px;
   transition: all 0.3s ease;
 }
 .btn-success:hover {
@@ -83,7 +105,10 @@ h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
 .btn-outline-secondary {
   color: #ff4d88;
   border-color: #ff4d88;
-  border-radius: 6px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 12px 24px;
   transition: all 0.3s ease;
 }
 .btn-outline-secondary:hover {
@@ -97,8 +122,11 @@ h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
 .form-control {
   background-color: #1e1e1e; /* Dunkler Hintergrund für Inputs */
   color: #d1d5db;
+  font-size: 1.25rem; /* Größere Schrift */
+  font-weight: 500;
   border: 1px solid #444;
-  border-radius: 6px;
+  border-radius: 8px;
+  padding: 12px;
   transition: all 0.3s ease-in-out;
 }
 .form-control:focus {
@@ -110,6 +138,8 @@ h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
 }
 
 .form-check-input {
+  width: 1.5rem; /* Größere Checkbox */
+  height: 1.5rem;
   background-color: #2a2a2a;
   border-color: #666;
 }
@@ -122,11 +152,16 @@ h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
   box-shadow: 0 0 0 0.25rem rgba(255, 77, 136, 0.3);
 }
 
+.form-check-label {
+  font-size: 1.25rem; /* Größere Schrift für Labels */
+  font-weight: 500;
+}
+
 /* Cards */
 .card {
   background-color: #1a1a1a;
   border: 1px solid #333;
-  border-radius: 8px;
+  border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
@@ -139,11 +174,14 @@ h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
   background-color: #222;
   border-bottom: 1px solid #333;
   color: #ff4d88;
+  font-size: 1.5rem; /* Größere Schrift */
+  font-weight: 600;
 }
 
 /* Tabellen */
 .table {
   color: #d1d5db;
+  font-size: 1.25rem; /* Größere Schrift */
 }
 .table-hover tbody tr {
   transition: background-color 0.3s ease;
@@ -154,8 +192,10 @@ h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
 
 /* Alerts */
 .alert {
-  border-radius: 8px;
+  border-radius: 10px;
   border: none;
+  font-size: 1.25rem; /* Größere Schrift */
+  font-weight: 500;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   transition: transform 0.3s ease;
 }
@@ -182,6 +222,8 @@ h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
 /* Links */
 a {
   color: #ff4d88;
+  font-size: 1.25rem; /* Größere Schrift */
+  font-weight: 500;
   text-decoration: none;
   transition: color 0.3s ease, transform 0.3s ease;
 }
@@ -193,25 +235,62 @@ a:hover {
 
 /* Container für zentrierte Inhalte */
 .container {
-  max-width: 1200px;
+  max-width: 1000px; /* Etwas schmaler für bessere Zentrierung */
   margin: 0 auto;
-  padding: 20px;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Inhalte zentriert ausrichten */
+  text-align: center; /* Text zentriert */
 }
 
-/* Abstände für Formulare und Buttons */
+/* Formulare zentrieren */
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  width: 100%;
+  max-width: 600px; /* Begrenze die Breite von Formularen für Zentrierung */
+}
+
+/* Tabellen zentrieren */
+.table {
+  width: 100%;
+  max-width: 800px; /* Begrenze die Breite der Tabelle */
+  margin: 0 auto;
+}
+
+/* Cards zentrieren */
+.card {
+  width: 100%;
+  max-width: 700px; /* Begrenze die Breite von Karten */
+  margin: 0 auto 1.5rem;
 }
 
 /* Responsive Anpassungen */
 @media (max-width: 768px) {
-  .navbar-brand {
-    font-size: 20px;
+  body {
+    font-size: 16px; /* Etwas kleinere Schrift auf Mobilgeräten */
   }
-  .container {
-    padding: 15px;
+  h1 { font-size: 2.5rem; }
+  h2 { font-size: 2rem; }
+  h3 { font-size: 1.75rem; }
+  h4 { font-size: 1.5rem; }
+  h5 { font-size: 1.25rem; }
+  h6 { font-size: 1.1rem; }
+  .navbar-brand {
+    font-size: 1.75rem;
+  }
+  .nav-link {
+    font-size: 1.1rem;
   }
   .btn {
-    padding: 8px 16px;
+    font-size: 1.1rem;
+    padding: 10px 20px;
+  }
+  .form-control {
+    font-size: 1.1rem;
+    padding: 10px;
+  }
+  .container {
+    padding: 20px;
   }
 }
