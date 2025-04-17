@@ -5,6 +5,7 @@ from flask_wtf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_mail import Mail, Message
+from flask_caching import Cache
 import psycopg
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
@@ -14,6 +15,11 @@ import gunicorn.app.base
 
 app = Flask(__name__)
 app.config.from_object('config.Config')
+# Cache-Konfiguration
+app.config['CACHE_TYPE'] = 'SimpleCache'  # In-Memory-Cache
+app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 5 Minuten
+cache = Cache(app)
+
 csrf = CSRFProtect(app)
 mail = Mail(app)
 
@@ -32,6 +38,72 @@ db_pool = ConnectionPool(
     max_size=10,
     open=True
 )
+
+# Funktion zum Erstellen der Tabellen, falls sie nicht existieren
+def init_db():
+    try:
+        conn = db_pool.getconn()
+        conn.row_factory = dict_row
+        cur = conn.cursor()
+
+        # Erstelle users-Tabelle
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT NOT NULL UNIQUE,
+                email TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                full_name TEXT,
+                company_name TEXT,
+                business_id TEXT,
+                is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Erstelle agents-Tabelle
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS agents (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                category TEXT NOT NULL,
+                package TEXT,
+                status TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        ''')
+
+        # Erstelle password_resets-Tabelle
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS password_resets (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                token TEXT NOT NULL,
+                expires_at BIGINT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        ''')
+
+        # Indizes erstellen
+        cur.execute('CREATE INDEX IF NOT EXISTS idx_users_id ON users(id)')
+        cur.execute('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)')
+        cur.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
+        cur.execute('CREATE INDEX IF NOT EXISTS idx_agents_user_id ON agents(user_id)')
+        cur.execute('CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status)')
+        cur.execute('CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token)')
+
+        conn.commit()
+        cur.close()
+        db_pool.putconn(conn)
+        app.logger.info("Database tables initialized successfully.")
+    except Exception as e:
+        app.logger.error(f"Error initializing database: {str(e)}")
+        raise
+
+# Führe die Initialisierung beim Start der Anwendung aus
+with app.app_context():
+    init_db()
 
 # Datenbankverbindung aus dem Pool holen
 def get_db_connection():
@@ -99,8 +171,7 @@ def login():
                 flash('Invalid username or password.', 'danger')
         except Exception as e:
             flash('An error occurred. Please try again later.', 'danger')
-            if app.config['DEBUG']:
-                app.logger.error(f"Login error: {str(e)}")
+            app.logger.error(f"Login error: {str(e)}")
     
     return render_template('login.html')
 
@@ -136,8 +207,7 @@ def admin_login():
                 flash('Invalid admin credentials.', 'danger')
         except Exception as e:
             flash('An error occurred. Please try again later.', 'danger')
-            if app.config['DEBUG']:
-                app.logger.error(f"Admin login error: {str(e)}")
+            app.logger.error(f"Admin login error: {str(e)}")
     
     return render_template('admin_login.html')
 
@@ -151,6 +221,7 @@ def register():
         return redirect(url_for('dashboard'))
     
     if request.method == 'POST':
+        app.logger.info("Received POST request to /register")
         username = request.form.get('username')
         email = request.form.get('email')
         password = request.form.get('password')
@@ -159,20 +230,24 @@ def register():
         business_id = request.form.get('business_id') or None
         
         if not username or not email or not password:
+            app.logger.warning("Missing required fields: username, email, or password")
             flash('Username, email, and password are required.', 'danger')
             return redirect(url_for('register'))
         
         try:
+            app.logger.info(f"Checking if user exists: username={username}, email={email}")
             conn = get_db_connection()
             cur = conn.cursor()
             cur.execute('SELECT id FROM users WHERE username = %s OR email = %s', (username, email))
             existing_user = cur.fetchone()
             
             if existing_user:
+                app.logger.info("User already exists")
                 cur.close()
                 flash('Username or email already exists.', 'danger')
                 return redirect(url_for('register'))
             
+            app.logger.info("Creating new user")
             password_hash = generate_password_hash(password)
             cur.execute(
                 'INSERT INTO users (username, email, password_hash, full_name, company_name, business_id, is_admin) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id',
@@ -180,19 +255,21 @@ def register():
             )
             user_id = cur.fetchone()['id']
             conn.commit()
+            app.logger.info(f"User created successfully: user_id={user_id}")
             cur.close()
             
             flash('Registration successful! Please log in.', 'success')
             return redirect(url_for('login'))
         except Exception as e:
+            app.logger.error(f"Registration error: {str(e)}")
             flash('An error occurred during registration. Please try again later.', 'danger')
-            if app.config['DEBUG']:
-                app.logger.error(f"Registration error: {str(e)}")
+            return redirect(url_for('register'))
     
     return render_template('register.html')
 
 # Dashboard
 @app.route('/dashboard', methods=['GET', 'POST'])
+@cache.cached(timeout=60)  # Cache für 60 Sekunden
 def dashboard():
     if not session.get('user_id'):
         flash('Please log in to access the dashboard.', 'danger')
@@ -207,7 +284,6 @@ def dashboard():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        # Kombinierte Abfrage für bessere Performance
         cur.execute('''
             SELECT u.full_name, a.id, a.name, a.category, a.package, a.status
             FROM users u
@@ -243,14 +319,14 @@ def dashboard():
                     (session['user_id'], name, category, package, 'pending')
                 )
             conn.commit()
+            cache.delete_memoized(dashboard)  # Cache invalidieren nach POST
             flash('Agent selection submitted successfully!', 'success')
             return redirect(url_for('dashboard'))
         
         cur.close()
     except Exception as e:
+        app.logger.error(f"Dashboard error: {str(e)}")
         flash('An error occurred while loading the dashboard. Please try again later.', 'danger')
-        if app.config['DEBUG']:
-            app.logger.error(f"Dashboard error: {str(e)}")
     
     return render_template('dashboard.html', greeting_name=greeting_name, selected_agents=selected_agents)
 
@@ -295,8 +371,7 @@ def profile():
         return render_template('profile.html', user=user)
     except Exception as e:
         flash('An error occurred while loading your profile. Please try again later.', 'danger')
-        if app.config['DEBUG']:
-            app.logger.error(f"Profile error: {str(e)}")
+        app.logger.error(f"Profile error: {str(e)}")
         return redirect(url_for('dashboard'))
 
 # Logout
@@ -349,8 +424,7 @@ def change_password():
             return redirect(url_for('dashboard'))
         except Exception as e:
             flash('An error occurred while changing your password. Please try again later.', 'danger')
-            if app.config['DEBUG']:
-                app.logger.error(f"Change password error: {str(e)}")
+            app.logger.error(f"Change password error: {str(e)}")
     
     return render_template('change_password.html')
 
@@ -399,8 +473,7 @@ def request_password_reset():
             cur.close()
         except Exception as e:
             flash('An error occurred while processing your request. Please try again later.', 'danger')
-            if app.config['DEBUG']:
-                app.logger.error(f"Password reset request error: {str(e)}")
+            app.logger.error(f"Password reset request error: {str(e)}")
     
     return render_template('request_password_reset.html')
 
@@ -452,8 +525,7 @@ def reset_password(token):
         cur.close()
     except Exception as e:
         flash('An error occurred while resetting your password. Please try again later.', 'danger')
-        if app.config['DEBUG']:
-            app.logger.error(f"Password reset error: {str(e)}")
+        app.logger.error(f"Password reset error: {str(e)}")
         return redirect(url_for('request_password_reset'))
     
     return render_template('reset_password.html')
@@ -497,8 +569,7 @@ def admin():
             flash('The agents table is missing in the database. Please contact support.', 'danger')
         else:
             flash('An error occurred while loading the admin dashboard. Please try again later.', 'danger')
-            if app.config['DEBUG']:
-                app.logger.error(f"Admin dashboard error: {str(e)}")
+            app.logger.error(f"Admin dashboard error: {str(e)}")
         return redirect(url_for('admin_login'))
 
 # Benutzerübersicht (Admin)
@@ -536,8 +607,7 @@ def admin_users():
         )
     except Exception as e:
         flash('An error occurred while loading the user list. Please try again later.', 'danger')
-        if app.config['DEBUG']:
-            app.logger.error(f"Admin users error: {str(e)}")
+        app.logger.error(f"Admin users error: {str(e)}")
         return redirect(url_for('admin'))
 
 # Agent aktivieren (Admin)
@@ -559,8 +629,7 @@ def activate_agent(agent_id):
         cur.close()
     except Exception as e:
         flash('An error occurred while activating the agent. Please try again later.', 'danger')
-        if app.config['DEBUG']:
-            app.logger.error(f"Agent activation error: {str(e)}")
+        app.logger.error(f"Agent activation error: {str(e)}")
     
     return redirect(url_for('admin'))
 
@@ -589,8 +658,7 @@ def delete_user(user_id):
         cur.close()
     except Exception as e:
         flash('An error occurred while deleting the user. Please try again later.', 'danger')
-        if app.config['DEBUG']:
-            app.logger.error(f"Delete user error: {str(e)}")
+        app.logger.error(f"Delete user error: {str(e)}")
     
     return redirect(url_for('admin_users'))
 
@@ -616,8 +684,7 @@ def delete_agent(agent_id):
         cur.close()
     except Exception as e:
         flash('An error occurred while deleting the agent. Please try again later.', 'danger')
-        if app.config['DEBUG']:
-            app.logger.error(f"Delete agent error: {str(e)}")
+        app.logger.error(f"Delete agent error: {str(e)}")
     
     return redirect(url_for('dashboard'))
 
@@ -639,7 +706,9 @@ if __name__ == '__main__':
     port = int(os.getenv("PORT", 8080))
     options = {
         'bind': f'0.0.0.0:{port}',
-        'workers': 3,
+        'workers': 2,  # Reduziert auf 2 Worker
+        'threads': 4,  # 4 Threads pro Worker
+        'worker_class': 'gthread',  # Verwende gthread für Threads
         'loglevel': 'error',
         'timeout': 60,
     }
