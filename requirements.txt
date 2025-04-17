@@ -7,3 +7,5 @@ flask-wtf==1.2.1
 wtforms==3.1.2
 flask-limiter==3.7.0
 psycopg[binary]==3.2.1
+gunicorn==22.0.0
+limits==3.12.0
