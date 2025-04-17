@@ -1,6 +1,6 @@
-# app.py – Version mit psycopg statt psycopg2
+# app.py – Korrigierte Version mit psycopg
 import os
-import psycopg  # Ersetzt psycopg2
+import psycopg
 import logging
 import re
 from flask import (
@@ -377,34 +377,23 @@ def dashboard():
                         name, package = val.split('|')
                         cur.execute("""
                             INSERT INTO selected_agents
-                            (user_id,category,name,package,status)
-                            VALUES (%s,'inbound',%s,%s,'pending')
+                            (user_id, category, name, package, status)
+                            VALUES (%s, 'inbound', %s, %s, 'pending')
                         """, (user_id, name, package))
                     # Outbound
                     for nm in request.form.getlist('outbound_agents'):
                         cur.execute("""
                             INSERT INTO selected_agents
-                            (user_id,category,name,status)
-                            VALUES (%s,'outbound',%s,'pending')
+                            (user_id, category, name, status)
+                            VALUES (%s, 'outbound', %s, 'pending')
                         """, (user_id, nm))
                     # Email-Agent
                     mail_agent = request.form.get('email_agent')
                     if mail_agent:
                         cur.execute("""
                             INSERT INTO selected_agents
-                            (user_id,category,name,status)
-                            VALUES (%s,'email',%s,'pending')
-                        """, (òng and dropbox links are now restricted for users with the same organization as the uploader or by anyone with the link.
-
-                    If you would like access to this content, please request to have the file added to your organization or to have a shareable link created.
-
-                    # Email-Agent
-                    mail_agent = request.form.get('email_agent')
-                    if mail_agent:
-                        cur.execute("""
-                            INSERT INTO selected_agents
-                            (user_id,category,name,status)
-                            VALUES (%s,'email',%s,'pending')
+                            (user_id, category, name, status)
+                            VALUES (%s, 'email', %s, 'pending')
                         """, (user_id, mail_agent))
             logger.info(f"Benutzer {session['username']} hat Agents ausgewählt.")
             flash("Auswahl gespeichert – wartet auf Admin-Freigabe.", "success")
@@ -647,3 +636,72 @@ def request_password_reset():
                     subject="Password Reset for Deseo Platform",
                     recipients=[email],
                     template="email_templates/reset_password_email",
+                    user=user_dict,
+                    token=token
+                )
+                logger.info(f"Passwort-Reset angefordert für {email}")
+                flash("Ein Link zum Zurücksetzen des Passworts wurde an Ihre E-Mail gesendet.", "success")
+            else:
+                flash("E-Mail-Adresse nicht gefunden.", "danger")
+        except Exception as e:
+            flash("Fehler beim Senden des Reset-Links.", "danger")
+            logger.error(f"Passwort-Reset-Fehler für {email}: {e}")
+        finally:
+            conn.close()
+        return redirect(url_for('login'))
+    return render_template('request_password_reset.html')
+
+# ---- Passwort zurücksetzen ----
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        email = serializer.loads(token, salt='password-reset-salt', max_age=app.config['PASSWORD_RESET_TOKEN_MAX_AGE'])
+    except Exception as e:
+        flash("Der Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen.", "danger")
+        logger.warning(f"Ungültiger/Abgelaufener Reset-Token: {e}")
+        return redirect(url_for('request_password_reset'))
+
+    if request.method == 'POST':
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+
+        if not all([password, confirm_password]):
+            flash("Alle Felder ausfüllen.", "warning")
+            return render_template('reset_password.html')
+
+        if password != confirm_password:
+            flash("Passwörter stimmen nicht überein.", "danger")
+            return render_template('reset_password.html')
+
+        # Passwort-Richtlinien prüfen
+        is_valid, message = validate_password(password)
+        if not is_valid:
+            flash(message, "danger")
+            return render_template('reset_password.html')
+
+        conn = get_db()
+        if not conn:
+            flash("Datenbank-Fehler.", "danger")
+            return render_template('reset_password.html')
+
+        try:
+            with conn:
+                with conn.cursor() as cur:
+                    hashed = generate_password_hash(password)
+                    cur.execute("UPDATE users SET password_hash=%s WHERE email=%s", (hashed, email))
+            logger.info(f"Passwort für {email} zurückgesetzt.")
+            flash("Passwort erfolgreich zurückgesetzt. Bitte einloggen.", "success")
+            return redirect(url_for('login'))
+        except Exception as e:
+            flash("Fehler beim Zurücksetzen des Passworts.", "danger")
+            logger.error(f"Passwort-Reset-Fehler für {email}: {e}")
+        finally:
+            conn.close()
+    return render_template('reset_password.html')
+
+# ────────────────────────────────────────────────────────────────────
+if __name__ == '__main__':
+    with app.app_context():
+        init_db()
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port, debug=True)
