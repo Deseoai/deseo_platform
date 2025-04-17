@@ -9,3 +9,4 @@ flask-limiter==3.7.0
 psycopg[binary,pool]==3.2.1
 gunicorn==22.0.0
 limits==3.12.0
+flask-caching==2.3.0
