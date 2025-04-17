@@ -1,36 +1,38 @@
 {% extends "base.html" %}
-{% block title %}Admin Dashboard{% endblock %}
+{% block title %}Admin: Dashboard{% endblock %}
 {% block content %}
-<h2>Admin: Agent Requests</h2>
-<table class="table table-bordered">
+<h2>Admin: Dashboard</h2>
+<h3>Agent Requests</h3>
+<table class="table table-striped">
   <thead>
     <tr>
-      <th>ID</th><th>User</th><th>Name</th><th>Category</th>
-      <th>Package</th><th>Status</th><th>Aktion</th>
+      <th>ID</th><th>Username</th><th>Full Name</th><th>Agent Name</th><th>Category</th><th>Package</th><th>Status</th><th>Aktion</th>
     </tr>
   </thead>
   <tbody>
-  {% for id, username, full_name, name, category, package, status in agents %}
+  {% for agent in agents %}
     <tr>
-      <td>{{ id }}</td>
-      <td>{{ username }} ({{ full_name }})</td>
-      <td>{{ name }}</td>
-      <td>{{ category }}</td>
-      <td>{{ package or '—' }}</td>
-      <td>{{ status }}</td>
+      <td>{{ agent.id }}</td>
+      <td>{{ agent.username }}</td>
+      <td>{{ agent.full_name or '—' }}</td>
+      <td>{{ agent.name }}</td>
+      <td>{{ agent.category }}</td>
+      <td>{{ agent.package or '—' }}</td>
+      <td>{{ agent.status }}</td>
       <td>
-        {% if status!='active' %}
-        <form method="POST" action="{{ url_for('activate_agent', agent_id=id) }}">
-          <button class="btn btn-sm btn-success">Activate</button>
-        </form>
+        {% if agent.status == 'pending' %}
+          <form method="POST" action="{{ url_for('activate_agent', agent_id=agent.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-success btn-sm">Aktivieren</button>
+          </form>
+        {% else %}
+          —
         {% endif %}
       </td>
     </tr>
   {% else %}
-    <tr><td colspan="7">Keine Anfragen.</td></tr>
+    <tr><td colspan="8">Keine Agents.</td></tr>
   {% endfor %}
   </tbody>
 </table>
-<hr>
-<p><a class="btn btn-secondary" href="{{ url_for('admin_users') }}">User Management</a></p>
 {% endblock %}
