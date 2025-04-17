@@ -1,10 +1,12 @@
+{# templates/welcome.html #}
 {% extends "base.html" %}
 {% block title %}Willkommen{% endblock %}
 {% block content %}
   <div class="text-center mt-5">
     <h1>Willkommen auf der Deseo Platform</h1>
-    <p><a href="{{ url_for('login') }}" class="btn btn-primary">Einloggen</a>
-       <a href="{{ url_for('register') }}" class="btn btn-outline-light">Registrieren</a>
+    <p>
+      <a href="{{ url_for('login') }}" class="btn btn-primary">Einloggen</a>
+      <a href="{{ url_for('register') }}" class="btn btn-outline-light">Registrieren</a>
     </p>
   </div>
 {% endblock %}
