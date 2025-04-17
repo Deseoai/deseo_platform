@@ -20,6 +20,7 @@
           <th>Business ID</th>
           <th>Is Admin?</th>
           <th>Registered On</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
@@ -40,11 +41,22 @@
               {% endif %}
             </td>
             <td>{{ u[7].strftime('%Y-%m-%d %H:%M') if u[7] else '-' }}</td>
+            <td>
+              {% if not u[6] %}  <!-- Admins können nicht gelöscht werden -->
+                <form method="POST" action="{{ url_for('delete_user', user_id=u[0]) }}" class="d-inline">
+                  <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this user?');">
+                    Delete
+                  </button>
+                </form>
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
           </tr>
           {% endfor %}
         {% else %}
           <tr>
-            <td colspan="8" class="text-center">
+            <td colspan="9" class="text-center">
               <em>No users found.</em>
             </td>
           </tr>

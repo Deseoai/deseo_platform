@@ -86,19 +86,26 @@
       {% for agent in selected_agents %}
         <div class="list-group-item d-flex justify-content-between align-items-center">
           <div>
-            <strong>{{ agent[0] }}</strong>
+            <strong>{{ agent[1] }}</strong>
             <small class="d-block text-muted">
-              Category: {{ agent[1] }}
-              {% if agent[2] %}| Plan: {{ agent[2] }}{% endif %}
+              Category: {{ agent[2] }}
+              {% if agent[3] %}| Plan: {{ agent[3] }}{% endif %}
             </small>
           </div>
-          {% if agent[3] == 'pending' %}
-            <span class="badge bg-warning text-dark">Pending</span>
-          {% elif agent[3] == 'active' %}
-            <span class="badge bg-success">Active</span>
-          {% else %}
-            <span class="badge bg-secondary">{{ agent[3]|capitalize }}</span>
-          {% endif %}
+          <div class="d-flex align-items-center gap-2">
+            {% if agent[4] == 'pending' %}
+              <span class="badge bg-warning text-dark">Pending</span>
+              <form method="POST" action="{{ url_for('delete_agent', agent_id=agent[0]) }}" class="d-inline">
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this agent?');">
+                  Delete
+                </button>
+              </form>
+            {% elif agent[4] == 'active' %}
+              <span class="badge bg-success">Active</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ agent[4]|capitalize }}</span>
+            {% endif %}
+          </div>
         </div>
       {% endfor %}
     </div>
