@@ -1,155 +1,53 @@
 {% extends "base.html" %}
-{% block title %}Dashboard - {{ super() }}{% endblock %}
-
+{% block title %}Dashboard{% endblock %}
 {% block content %}
-<div class="container mt-5">
-  <h2 class="mb-4">Welcome, {{ greeting_name }}!</h2>
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+<h2>Dein Dashboard</h2>
 
-  <!-- Agent Selection Form -->
-  <div class="card shadow-lg mb-5">
-    <div class="card-body p-4">
-      <h3 class="card-title mb-4">Select Agents</h3>
-      <form method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <!-- Inbound Agents -->
-        <div class="mb-4">
-          <h5>Inbound Agents</h5>
-          <div class="row">
-            <div class="col-md-4">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="inbound_agents" value="Voice Agent|Basic" id="inboundVoiceBasic">
-                <label class="form-check-label" for="inboundVoiceBasic">
-                  Voice Agent (Basic)
-                </label>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="inbound_agents" value="Voice Agent|Pro" id="inboundVoicePro">
-                <label class="form-check-label" for="inboundVoicePro">
-                  Voice Agent (Pro)
-                </label>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="inbound_agents" value="Voice Agent|Enterprise" id="inboundVoiceEnterprise">
-                <label class="form-check-label" for="inboundVoiceEnterprise">
-                  Voice Agent (Enterprise)
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Outbound Agents -->
-        <div class="mb-4">
-          <h5>Outbound Agents</h5>
-          <div class="row">
-            <div class="col-md-4">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="outbound_agents" value="Sales Agent" id="outboundSales">
-                <label class="form-check-label" for="outboundSales">
-                  Sales Agent
-                </label>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="outbound_agents" value="Survey Agent" id="outboundSurvey">
-                <label class="form-check-label" for="outboundSurvey">
-                  Survey Agent
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Email Agent -->
-        <div class="mb-4">
-          <h5>Email Agent</h5>
-          <div class="row">
-            <div class="col-md-4">
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="email_agent" value="Support Agent" id="emailSupport">
-                <label class="form-check-label" for="emailSupport">
-                  Support Agent
-                </label>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="email_agent" value="Marketing Agent" id="emailMarketing">
-                <label class="form-check-label" for="emailMarketing">
-                  Marketing Agent
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="d-grid">
-          <button type="submit" class="btn btn-primary btn-lg">Submit Selection</button>
-        </div>
-      </form>
-    </div>
-  </div>
+<form method="POST" action="{{ url_for('dashboard') }}">
+  <h4>Inbound Agents</h4>
+  <select class="form-select mb-3" name="inbound_agents" multiple>
+    <option value="agentA|small">Agent A (small)</option>
+    <option value="agentB|medium">Agent B (medium)</option>
+    <!-- hier deine echten Optionen -->
+  </select>
 
-  <!-- Selected Agents -->
-  <div class="card shadow-lg">
-    <div class="card-body p-4">
-      <h3 class="card-title mb-4">Your Selected Agents</h3>
-      {% if selected_agents %}
-        <div class="table-responsive">
-          <table class="table table-hover">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Package</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for agent in selected_agents %}
-                <tr>
-                  <td>{{ agent[1] }}</td>
-                  <td>{{ agent[2] }}</td>
-                  <td>{{ agent[3] or 'N/A' }}</td>
-                  <td>
-                    <span class="badge bg-{{ 'success' if agent[4] == 'active' else 'warning' }}">
-                      {{ agent[4] | capitalize }}
-                    </span>
-                  </td>
-                  <td>
-                    {% if agent[4] == 'pending' %}
-                      <form method="POST" action="{{ url_for('delete_agent', agent_id=agent[0]) }}" style="display:inline;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this agent?');">
-                          Delete
-                        </button>
-                      </form>
-                    {% else %}
-                      <span class="text-muted">No actions available</span>
-                    {% endif %}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <p class="text-muted text-center">No agents selected yet.</p>
-      {% endif %}
-    </div>
-  </div>
-</div>
+  <h4>Outbound Agents</h4>
+  <select class="form-select mb-3" name="outbound_agents" multiple>
+    <option value="agentX">Agent X</option>
+    <option value="agentY">Agent Y</option>
+    <!-- usw. -->
+  </select>
+
+  <h4>Email Agent</h4>
+  <select class="form-select mb-3" name="email_agent">
+    <option value="">— none —</option>
+    <option value="emailAgent1">Email Agent 1</option>
+    <!-- usw. -->
+  </select>
+
+  <button class="btn btn-primary">Save Selection</button>
+</form>
+
+<hr>
+
+<h3>Deine ausgewählten Agents:</h3>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Name</th><th>Kategorie</th><th>Package</th><th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for name, category, package, status in selected_agents %}
+    <tr>
+      <td>{{ name }}</td>
+      <td>{{ category }}</td>
+      <td>{{ package or '—' }}</td>
+      <td>{{ status }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4">Keine Einträge.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
