@@ -1,0 +1,177 @@
+/* === Grunddesign (Light Mode Standard) === */
+body {
+  background-color: #f5f7fa; /* Sanftes Grau-Blau als Hintergrund */
+  color: #2d3748; /* Dunkelgrau für Text, für besseren Kontrast */
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.4s, color 0.4s;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #4a90e2; /* Sanftes Blau für Überschriften */
+  font-weight: 700;
+}
+
+.navbar {
+  background-color: #ffffff !important; /* Weiße Navbar */
+  border-bottom: 1px solid #e2e8f0; /* Subtiler Rand */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Leichter Schatten */
+  transition: background-color 0.3s ease-in-out;
+}
+
+.navbar-brand {
+  font-size: 24px;
+  font-weight: bold;
+  color: #4a90e2 !important; /* Blaue Farbe für den Brand-Text */
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: #4a90e2; /* Sanftes Blau für primäre Buttons */
+  border-color: #4a90e2;
+  color: white;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+.btn-primary:hover {
+  background-color: #3b82f6; /* Etwas helleres Blau beim Hover */
+  border-color: #3b82f6;
+  transform: scale(1.03);
+  box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
+}
+
+.btn-success {
+  background-color: #34c759; /* Frisches Grün für Erfolgs-Buttons */
+  border-color: #34c759;
+  color: white;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+.btn-success:hover {
+  background-color: #2fb350;
+  border-color: #2fb350;
+  transform: scale(1.03);
+  box-shadow: 0 4px 15px rgba(52, 199, 89, 0.3);
+}
+
+.btn-outline-secondary {
+  color: #4a90e2;
+  border-color: #4a90e2;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+.btn-outline-secondary:hover {
+  background-color: #4a90e2;
+  color: white;
+  transform: scale(1.03);
+}
+
+/* Form Controls */
+.form-control {
+  background-color: #ffffff; /* Weißer Hintergrund für Inputs */
+  color: #2d3748;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  transition: all 0.3s ease-in-out;
+}
+.form-control:focus {
+  background-color: #ffffff;
+  color: #2d3748;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, 0.25);
+  outline: none;
+}
+
+.form-check-input {
+  background-color: #ffffff;
+  border-color: #d1d5db;
+}
+.form-check-input:checked {
+  background-color: #4a90e2;
+  border-color: #4a90e2;
+}
+.form-check-input:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, 0.25);
+}
+
+/* Cards */
+.card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+.card-header {
+  background-color: #f9fafb; /* Sehr helles Grau für Card-Header */
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Tabellen */
+.table-hover tbody tr:hover {
+  background-color: #edf2f7; /* Sanftes Grau-Blau beim Hover */
+}
+
+/* Alerts */
+.alert {
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+.alert-success {
+  background-color: #e6ffed;
+  color: #2fb350;
+}
+.alert-danger {
+  background-color: #ffe6e6;
+  color: #e53e3e;
+}
+.alert-warning {
+  background-color: #fff7e6;
+  color: #d69e2e;
+}
+.alert-info {
+  background-color: #e6f0ff;
+  color: #4a90e2;
+}
+
+/* Links */
+a {
+  color: #4a90e2;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+a:hover {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+/* Container für zentrierte Inhalte */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Abstände für Formulare und Buttons */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+/* Responsive Anpassungen */
+@media (max-width: 768px) {
+  .navbar-brand {
+    font-size: 20px;
+  }
+  .container {
+    padding: 15px;
+  }
+  .btn {
+    padding: 8px 16px;
+  }
+}
