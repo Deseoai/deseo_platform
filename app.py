@@ -359,6 +359,46 @@ def request_password_reset():
 def reset_password(token):
     return render_template('reset_password.html')
 
+# ---------- Passwort ändern (nur eingeloggte User) ----------
+@app.route('/change-password', methods=['GET', 'POST'])
+def change_password():
+    if 'user_id' not in session:
+        flash("Bitte erst einloggen.", "warning")
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        current = request.form.get('current_password')
+        new     = request.form.get('new_password')
+        repeat  = request.form.get('repeat_password')
+
+        if not all([current, new, repeat]):
+            flash("Alle Felder ausfüllen.", "warning")
+            return render_template('change_password.html')
+
+        if new != repeat:
+            flash("Neue Passwörter stimmen nicht überein.", "danger")
+            return render_template('change_password.html')
+
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT password_hash FROM users WHERE id=%s",
+                            (session['user_id'],))
+                db_hash, = cur.fetchone()
+
+                if not check_password_hash(db_hash, current):
+                    flash("Aktuelles Passwort falsch.", "danger")
+                    return render_template('change_password.html')
+
+                cur.execute("UPDATE users SET password_hash=%s WHERE id=%s",
+                            (generate_password_hash(new), session['user_id']))
+                conn.commit()
+                flash("Passwort erfolgreich geändert.", "success")
+                return redirect(url_for('dashboard' if not session.get('is_admin') else 'admin'))
+
+    return render_template('change_password.html')
+
+
+
 # ─────────────────────  App‑Start  ──────────────────────
 if __name__ == "__main__":
     with app.app_context():
