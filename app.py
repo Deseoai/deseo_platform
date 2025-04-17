@@ -1,12 +1,13 @@
 import os
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, g
 from flask_wtf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_mail import Mail, Message
 import psycopg
 from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 from werkzeug.security import generate_password_hash, check_password_hash
 import secrets
 import gunicorn.app.base
@@ -24,13 +25,27 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
-# Datenbankverbindung
+# Initialisiere Connection Pool
+db_pool = ConnectionPool(
+    conninfo=app.config['DATABASE_URL'],
+    min_size=1,
+    max_size=10,
+    open=True
+)
+
+# Datenbankverbindung aus dem Pool holen
 def get_db_connection():
-    conn = psycopg.connect(
-        conninfo=app.config['DATABASE_URL'],
-        row_factory=dict_row
-    )
-    return conn
+    if 'db_conn' not in g:
+        g.db_conn = db_pool.getconn()
+        g.db_conn.row_factory = dict_row
+    return g.db_conn
+
+# Verbindung nach dem Request zurückgeben
+@app.teardown_appcontext
+def close_db_connection(exception):
+    conn = g.pop('db_conn', None)
+    if conn is not None:
+        db_pool.putconn(conn)
 
 # Error-Handler für 404
 @app.errorhandler(404)
@@ -49,7 +64,7 @@ def home():
 
 # Benutzer-Login
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("10 per minute", methods=["POST"])  # Nur POST-Anfragen limitieren
+@limiter.limit("10 per minute", methods=["POST"])
 def login():
     if session.get('user_id'):
         if session.get('is_admin'):
@@ -70,7 +85,6 @@ def login():
             cur.execute('SELECT id, username, password_hash, is_admin FROM users WHERE username = %s', (username,))
             user = cur.fetchone()
             cur.close()
-            conn.close()
             
             if user and check_password_hash(user['password_hash'], password):
                 session['user_id'] = user['id']
@@ -85,13 +99,14 @@ def login():
                 flash('Invalid username or password.', 'danger')
         except Exception as e:
             flash('An error occurred. Please try again later.', 'danger')
-            app.logger.error(f"Login error: {str(e)}")
+            if app.config['DEBUG']:
+                app.logger.error(f"Login error: {str(e)}")
     
     return render_template('login.html')
 
 # Admin-Login
 @app.route('/admin/login', methods=['GET', 'POST'])
-@limiter.limit("10 per minute", methods=["POST"])  # Nur POST-Anfragen limitieren
+@limiter.limit("10 per minute", methods=["POST"])
 def admin_login():
     if session.get('user_id') and session.get('is_admin'):
         return redirect(url_for('admin'))
@@ -110,7 +125,6 @@ def admin_login():
             cur.execute('SELECT id, username, password_hash, is_admin FROM users WHERE username = %s AND is_admin = true', (username,))
             admin = cur.fetchone()
             cur.close()
-            conn.close()
             
             if admin and check_password_hash(admin['password_hash'], password):
                 session['user_id'] = admin['id']
@@ -122,13 +136,14 @@ def admin_login():
                 flash('Invalid admin credentials.', 'danger')
         except Exception as e:
             flash('An error occurred. Please try again later.', 'danger')
-            app.logger.error(f"Admin login error: {str(e)}")
+            if app.config['DEBUG']:
+                app.logger.error(f"Admin login error: {str(e)}")
     
     return render_template('admin_login.html')
 
 # Registrierung
 @app.route('/register', methods=['GET', 'POST'])
-@limiter.limit("5 per minute", methods=["POST"])  # Nur POST-Anfragen limitieren
+@limiter.limit("5 per minute", methods=["POST"])
 def register():
     if session.get('user_id'):
         if session.get('is_admin'):
@@ -155,7 +170,6 @@ def register():
             
             if existing_user:
                 cur.close()
-                conn.close()
                 flash('Username or email already exists.', 'danger')
                 return redirect(url_for('register'))
             
@@ -167,13 +181,13 @@ def register():
             user_id = cur.fetchone()['id']
             conn.commit()
             cur.close()
-            conn.close()
             
             flash('Registration successful! Please log in.', 'success')
             return redirect(url_for('login'))
         except Exception as e:
             flash('An error occurred during registration. Please try again later.', 'danger')
-            app.logger.error(f"Registration error: {str(e)}")
+            if app.config['DEBUG']:
+                app.logger.error(f"Registration error: {str(e)}")
     
     return render_template('register.html')
 
@@ -193,13 +207,21 @@ def dashboard():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute('SELECT full_name FROM users WHERE id = %s', (session['user_id'],))
-        user = cur.fetchone()
-        if user and user['full_name']:
-            greeting_name = user['full_name']
+        # Kombinierte Abfrage für bessere Performance
+        cur.execute('''
+            SELECT u.full_name, a.id, a.name, a.category, a.package, a.status
+            FROM users u
+            LEFT JOIN agents a ON a.user_id = u.id
+            WHERE u.id = %s
+        ''', (session['user_id'],))
+        results = cur.fetchall()
         
-        cur.execute('SELECT id, name, category, package, status FROM agents WHERE user_id = %s', (session['user_id'],))
-        selected_agents = cur.fetchall()
+        if results:
+            greeting_name = results[0]['full_name'] or greeting_name
+            selected_agents = [
+                {'id': r['id'], 'name': r['name'], 'category': r['category'], 'package': r['package'], 'status': r['status']}
+                for r in results if r['id'] is not None
+            ]
         
         if request.method == 'POST':
             inbound_agents = request.form.getlist('inbound_agents')
@@ -225,10 +247,10 @@ def dashboard():
             return redirect(url_for('dashboard'))
         
         cur.close()
-        conn.close()
     except Exception as e:
         flash('An error occurred while loading the dashboard. Please try again later.', 'danger')
-        app.logger.error(f"Dashboard error: {str(e)}")
+        if app.config['DEBUG']:
+            app.logger.error(f"Dashboard error: {str(e)}")
     
     return render_template('dashboard.html', greeting_name=greeting_name, selected_agents=selected_agents)
 
@@ -265,7 +287,6 @@ def profile():
         )
         user = cur.fetchone()
         cur.close()
-        conn.close()
         
         if not user:
             flash('Unable to load profile. Please try again later.', 'danger')
@@ -274,7 +295,8 @@ def profile():
         return render_template('profile.html', user=user)
     except Exception as e:
         flash('An error occurred while loading your profile. Please try again later.', 'danger')
-        app.logger.error(f"Profile error: {str(e)}")
+        if app.config['DEBUG']:
+            app.logger.error(f"Profile error: {str(e)}")
         return redirect(url_for('dashboard'))
 
 # Logout
@@ -315,7 +337,6 @@ def change_password():
             
             if not user or not check_password_hash(user['password_hash'], current_password):
                 cur.close()
-                conn.close()
                 flash('Current password is incorrect.', 'danger')
                 return redirect(url_for('change_password'))
             
@@ -323,19 +344,19 @@ def change_password():
             cur.execute('UPDATE users SET password_hash = %s WHERE id = %s', (new_password_hash, session['user_id']))
             conn.commit()
             cur.close()
-            conn.close()
             
             flash('Password changed successfully!', 'success')
             return redirect(url_for('dashboard'))
         except Exception as e:
             flash('An error occurred while changing your password. Please try again later.', 'danger')
-            app.logger.error(f"Change password error: {str(e)}")
+            if app.config['DEBUG']:
+                app.logger.error(f"Change password error: {str(e)}")
     
     return render_template('change_password.html')
 
 # Passwort-Reset anfordern
 @app.route('/request-password-reset', methods=['GET', 'POST'])
-@limiter.limit("5 per minute", methods=["POST"])  # Nur POST-Anfragen limitieren
+@limiter.limit("5 per minute", methods=["POST"])
 def request_password_reset():
     if session.get('user_id'):
         if session.get('is_admin'):
@@ -376,16 +397,16 @@ def request_password_reset():
                 flash('No account found with that email address.', 'danger')
             
             cur.close()
-            conn.close()
         except Exception as e:
             flash('An error occurred while processing your request. Please try again later.', 'danger')
-            app.logger.error(f"Password reset request error: {str(e)}")
+            if app.config['DEBUG']:
+                app.logger.error(f"Password reset request error: {str(e)}")
     
     return render_template('request_password_reset.html')
 
 # Passwort zurücksetzen
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
-@limiter.limit("5 per minute", methods=["POST"])  # Nur POST-Anfragen limitieren
+@limiter.limit("5 per minute", methods=["POST"])
 def reset_password(token):
     if session.get('user_id'):
         if session.get('is_admin'):
@@ -404,7 +425,6 @@ def reset_password(token):
         
         if not reset_request:
             cur.close()
-            conn.close()
             flash('Invalid or expired password reset token.', 'danger')
             return redirect(url_for('request_password_reset'))
         
@@ -425,63 +445,99 @@ def reset_password(token):
             cur.execute('DELETE FROM password_resets WHERE token = %s', (token,))
             conn.commit()
             cur.close()
-            conn.close()
             
             flash('Your password has been reset successfully. Please log in.', 'success')
             return redirect(url_for('login'))
         
         cur.close()
-        conn.close()
     except Exception as e:
         flash('An error occurred while resetting your password. Please try again later.', 'danger')
-        app.logger.error(f"Password reset error: {str(e)}")
+        if app.config['DEBUG']:
+            app.logger.error(f"Password reset error: {str(e)}")
         return redirect(url_for('request_password_reset'))
     
     return render_template('reset_password.html')
 
 # Admin-Dashboard
-@app.route('/admin')
+@app.route('/admin', methods=['GET'])
 def admin():
     if not session.get('user_id') or not session.get('is_admin'):
         flash('Please log in as an admin to access this page.', 'danger')
         return redirect(url_for('admin_login'))
     
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    offset = (page - 1) * per_page
+    
     try:
         conn = get_db_connection()
         cur = conn.cursor()
+        cur.execute('SELECT COUNT(*) FROM agents')
+        total_agents = cur.fetchone()['count']
+        total_pages = (total_agents + per_page - 1) // per_page
+        
         cur.execute('''
             SELECT a.id, u.username, u.full_name, a.name, a.category, a.package, a.status
             FROM agents a
             JOIN users u ON a.user_id = u.id
             ORDER BY a.status, u.username
-        ''')
+            LIMIT %s OFFSET %s
+        ''', (per_page, offset))
         agents = cur.fetchall()
         cur.close()
-        conn.close()
-        return render_template('admin_dashboard.html', agents=agents)
-    except Exception as e:
-        flash('An error occurred while loading the admin dashboard. Please try again later.', 'danger')
-        app.logger.error(f"Admin dashboard error: {str(e)}")
+        return render_template(
+            'admin_dashboard.html',
+            agents=agents,
+            page=page,
+            total_pages=total_pages,
+            per_page=per_page
+        )
+    except psycopg.Error as e:
+        if "relation \"agents\" does not exist" in str(e):
+            flash('The agents table is missing in the database. Please contact support.', 'danger')
+        else:
+            flash('An error occurred while loading the admin dashboard. Please try again later.', 'danger')
+            if app.config['DEBUG']:
+                app.logger.error(f"Admin dashboard error: {str(e)}")
         return redirect(url_for('admin_login'))
 
 # Benutzerübersicht (Admin)
-@app.route('/admin/users')
+@app.route('/admin/users', methods=['GET'])
 def admin_users():
     if not session.get('user_id') or not session.get('is_admin'):
         flash('Please log in as an admin to access this page.', 'danger')
         return redirect(url_for('admin_login'))
     
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    offset = (page - 1) * per_page
+    
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute('SELECT id, username, email, full_name, company_name, business_id, is_admin, created_at FROM users ORDER BY created_at DESC')
+        cur.execute('SELECT COUNT(*) FROM users')
+        total_users = cur.fetchone()['count']
+        total_pages = (total_users + per_page - 1) // per_page
+        
+        cur.execute('''
+            SELECT id, username, email, full_name, company_name, business_id, is_admin, created_at
+            FROM users
+            ORDER BY created_at DESC
+            LIMIT %s OFFSET %s
+        ''', (per_page, offset))
         users = cur.fetchall()
         cur.close()
-        conn.close()
-        return render_template('admin_users.html', users=users)
+        return render_template(
+            'admin_users.html',
+            users=users,
+            page=page,
+            total_pages=total_pages,
+            per_page=per_page
+        )
     except Exception as e:
         flash('An error occurred while loading the user list. Please try again later.', 'danger')
-        app.logger.error(f"Admin users error: {str(e)}")
+        if app.config['DEBUG']:
+            app.logger.error(f"Admin users error: {str(e)}")
         return redirect(url_for('admin'))
 
 # Agent aktivieren (Admin)
@@ -501,10 +557,10 @@ def activate_agent(agent_id):
         else:
             flash('Agent activated successfully!', 'success')
         cur.close()
-        conn.close()
     except Exception as e:
         flash('An error occurred while activating the agent. Please try again later.', 'danger')
-        app.logger.error(f"Agent activation error: {str(e)}")
+        if app.config['DEBUG']:
+            app.logger.error(f"Agent activation error: {str(e)}")
     
     return redirect(url_for('admin'))
 
@@ -531,10 +587,10 @@ def delete_user(user_id):
         else:
             flash('User deleted successfully!', 'success')
         cur.close()
-        conn.close()
     except Exception as e:
         flash('An error occurred while deleting the user. Please try again later.', 'danger')
-        app.logger.error(f"Delete user error: {str(e)}")
+        if app.config['DEBUG']:
+            app.logger.error(f"Delete user error: {str(e)}")
     
     return redirect(url_for('admin_users'))
 
@@ -558,10 +614,10 @@ def delete_agent(agent_id):
         else:
             flash('Agent deleted successfully!', 'success')
         cur.close()
-        conn.close()
     except Exception as e:
         flash('An error occurred while deleting the agent. Please try again later.', 'danger')
-        app.logger.error(f"Delete agent error: {str(e)}")
+        if app.config['DEBUG']:
+            app.logger.error(f"Delete agent error: {str(e)}")
     
     return redirect(url_for('dashboard'))
 
@@ -580,11 +636,11 @@ class StandaloneGunicorn(gunicorn.app.base.BaseApplication):
         return self.application
 
 if __name__ == '__main__':
-    # Umgebungsvariable PORT holen, Standard ist 8080
     port = int(os.getenv("PORT", 8080))
     options = {
         'bind': f'0.0.0.0:{port}',
-        'workers': 1,
-        'loglevel': 'info',
+        'workers': 3,
+        'loglevel': 'error',
+        'timeout': 60,
     }
     StandaloneGunicorn(app, options).run()
