@@ -1,8 +1,8 @@
 flask==2.0.1
-psycopg2-binary==2.9.3
 werkzeug==2.0.2
 itsdangerous==2.0.1
 flask-mail==0.9.1
 python-dotenv==0.19.0
-flask-wtf==1.0.1  # Für CSRF-Schutz
-flask-limiter==3.5.1  # Für Rate-Limiting
+flask-wtf==1.0.1
+flask-limiter==3.5.1
+psycopg[binary]==3.2.1  # Ersetzt psycopg2
