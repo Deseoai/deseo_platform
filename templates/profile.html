@@ -7,22 +7,33 @@
     <div class="card shadow-lg">
       <div class="card-body p-4">
         <h2 class="card-title text-center mb-4">Your Profile</h2>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
         {% if user %}
           <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="row g-3">
-              <div class="col-12">
+              <div class="col-md-6">
                 <label for="username" class="form-label">Username</label>
-                <input type="text" class="form-control" id="username" value="{{ user[0] }}" disabled>
+                <input type="text" class="form-control" id="username" name="username" value="{{ user[0] }}" readonly>
               </div>
-              <div class="col-12">
+              <div class="col-md-6">
                 <label for="email" class="form-label">Email</label>
-                <input type="email" class="form-control" id="email" value="{{ user[1] }}" disabled>
+                <input type="email" class="form-control" id="email" name="email" value="{{ user[1] }}" readonly>
               </div>
-              <div class="col-12">
+              <div class="col-md-6">
                 <label for="full_name" class="form-label">Full Name</label>
                 <input type="text" class="form-control" id="full_name" name="full_name" value="{{ user[2] or '' }}">
               </div>
-              <div class="col-12">
+              <div class="col-md-6">
                 <label for="company_name" class="form-label">Company Name</label>
                 <input type="text" class="form-control" id="company_name" name="company_name" value="{{ user[3] or '' }}">
               </div>
@@ -38,11 +49,13 @@
           <hr class="my-4">
           <div class="text-center">
             <p class="mb-0">
-              Want to change your password? <a href="{{ url_for('change_password') }}">Click here</a>
+              <a href="{{ url_for('change_password') }}">Change Password</a>
             </p>
           </div>
         {% else %}
-          <div class="alert alert-danger">Could not load profile data.</div>
+          <div class="alert alert-danger text-center">
+            Unable to load profile. Please try again later.
+          </div>
         {% endif %}
       </div>
     </div>
