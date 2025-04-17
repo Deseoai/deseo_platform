@@ -1,7 +1,7 @@
-/* === Grunddesign (Light Mode Standard) === */
+/* === Grunddesign (Dark Mode mit Schwarz) === */
 body {
-  background-color: #f5f7fa; /* Sanftes Grau-Blau als Hintergrund */
-  color: #2d3748; /* Dunkelgrau für Text, für besseren Kontrast */
+  background-color: #000; /* Schwarzer Hintergrund */
+  color: #d1d5db; /* Hellgrau für Text, für guten Kontrast */
   font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   margin: 0;
   padding: 0;
@@ -9,146 +9,186 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  color: #4a90e2; /* Sanftes Blau für Überschriften */
+  color: #ff4d88; /* Leuchtendes Pink für Überschriften */
   font-weight: 700;
+  transition: color 0.3s ease;
+}
+
+h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
+  color: #ff80ab; /* Helleres Pink beim Hover */
 }
 
 .navbar {
-  background-color: #ffffff !important; /* Weiße Navbar */
-  border-bottom: 1px solid #e2e8f0; /* Subtiler Rand */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Leichter Schatten */
+  background-color: #1a1a1a !important; /* Dunkle Navbar */
+  border-bottom: 1px solid #333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   transition: background-color 0.3s ease-in-out;
 }
 
 .navbar-brand {
   font-size: 24px;
   font-weight: bold;
-  color: #4a90e2 !important; /* Blaue Farbe für den Brand-Text */
+  color: #ff4d88 !important; /* Pink für den Brand-Text */
   letter-spacing: 1px;
   display: flex;
   align-items: center;
   gap: 10px;
+  transition: color 0.3s ease;
+}
+
+.navbar-brand:hover {
+  color: #ff80ab !important; /* Helleres Pink beim Hover */
+}
+
+.nav-link {
+  color: #d1d5db !important;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+.nav-link:hover {
+  color: #ff4d88 !important;
+  transform: scale(1.05);
 }
 
 /* Buttons */
 .btn-primary {
-  background-color: #4a90e2; /* Sanftes Blau für primäre Buttons */
-  border-color: #4a90e2;
-  color: white;
+  background-color: #ff4d88; /* Pink für primäre Buttons */
+  border-color: #ff4d88;
+  color: #000;
   border-radius: 6px;
   transition: all 0.3s ease;
 }
 .btn-primary:hover {
-  background-color: #3b82f6; /* Etwas helleres Blau beim Hover */
-  border-color: #3b82f6;
-  transform: scale(1.03);
-  box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
+  background-color: #ff80ab; /* Helleres Pink beim Hover */
+  border-color: #ff80ab;
+  color: #000;
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(255, 77, 136, 0.5);
 }
 
 .btn-success {
-  background-color: #34c759; /* Frisches Grün für Erfolgs-Buttons */
-  border-color: #34c759;
-  color: white;
+  background-color: #00cc99; /* Türkis für Erfolgs-Buttons */
+  border-color: #00cc99;
+  color: #000;
   border-radius: 6px;
   transition: all 0.3s ease;
 }
 .btn-success:hover {
-  background-color: #2fb350;
-  border-color: #2fb350;
-  transform: scale(1.03);
-  box-shadow: 0 4px 15px rgba(52, 199, 89, 0.3);
+  background-color: #33ffcc; /* Helleres Türkis beim Hover */
+  border-color: #33ffcc;
+  color: #000;
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0, 204, 153, 0.5);
 }
 
 .btn-outline-secondary {
-  color: #4a90e2;
-  border-color: #4a90e2;
+  color: #ff4d88;
+  border-color: #ff4d88;
   border-radius: 6px;
   transition: all 0.3s ease;
 }
 .btn-outline-secondary:hover {
-  background-color: #4a90e2;
-  color: white;
-  transform: scale(1.03);
+  background-color: #ff4d88;
+  color: #000;
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(255, 77, 136, 0.3);
 }
 
 /* Form Controls */
 .form-control {
-  background-color: #ffffff; /* Weißer Hintergrund für Inputs */
-  color: #2d3748;
-  border: 1px solid #e2e8f0;
+  background-color: #1e1e1e; /* Dunkler Hintergrund für Inputs */
+  color: #d1d5db;
+  border: 1px solid #444;
   border-radius: 6px;
   transition: all 0.3s ease-in-out;
 }
 .form-control:focus {
-  background-color: #ffffff;
-  color: #2d3748;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, 0.25);
+  background-color: #2a2a2a;
+  color: #d1d5db;
+  border-color: #ff4d88;
+  box-shadow: 0 0 0 0.25rem rgba(255, 77, 136, 0.3);
   outline: none;
 }
 
 .form-check-input {
-  background-color: #ffffff;
-  border-color: #d1d5db;
+  background-color: #2a2a2a;
+  border-color: #666;
 }
 .form-check-input:checked {
-  background-color: #4a90e2;
-  border-color: #4a90e2;
+  background-color: #ff4d88;
+  border-color: #ff4d88;
 }
 .form-check-input:focus {
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, 0.25);
+  border-color: #ff4d88;
+  box-shadow: 0 0 0 0.25rem rgba(255, 77, 136, 0.3);
 }
 
 /* Cards */
 .card {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  background-color: #1a1a1a;
+  border: 1px solid #333;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(255, 77, 136, 0.2);
+}
+
 .card-header {
-  background-color: #f9fafb; /* Sehr helles Grau für Card-Header */
-  border-bottom: 1px solid #e2e8f0;
+  background-color: #222;
+  border-bottom: 1px solid #333;
+  color: #ff4d88;
 }
 
 /* Tabellen */
+.table {
+  color: #d1d5db;
+}
+.table-hover tbody tr {
+  transition: background-color 0.3s ease;
+}
 .table-hover tbody tr:hover {
-  background-color: #edf2f7; /* Sanftes Grau-Blau beim Hover */
+  background-color: rgba(255, 77, 136, 0.1); /* Subtiles Pink beim Hover */
 }
 
 /* Alerts */
 .alert {
   border-radius: 8px;
   border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease;
+}
+.alert:hover {
+  transform: translateY(-2px);
 }
 .alert-success {
-  background-color: #e6ffed;
-  color: #2fb350;
+  background-color: #003322; /* Dunkles Türkis für Erfolg */
+  color: #33ffcc;
 }
 .alert-danger {
-  background-color: #ffe6e6;
-  color: #e53e3e;
+  background-color: #3f0000; /* Dunkles Rot für Fehler */
+  color: #ff6666;
 }
 .alert-warning {
-  background-color: #fff7e6;
-  color: #d69e2e;
+  background-color: #3f2a00; /* Dunkles Gelb für Warnungen */
+  color: #ffcc66;
 }
 .alert-info {
-  background-color: #e6f0ff;
-  color: #4a90e2;
+  background-color: #1a2a3f; /* Dunkles Blau für Info */
+  color: #66b3ff;
 }
 
 /* Links */
 a {
-  color: #4a90e2;
+  color: #ff4d88;
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: color 0.3s ease, transform 0.3s ease;
 }
 a:hover {
-  color: #3b82f6;
+  color: #ff80ab;
   text-decoration: underline;
+  transform: scale(1.03);
 }
 
 /* Container für zentrierte Inhalte */
