@@ -1,43 +1,41 @@
 {% extends "base.html" %}
 {% block title %}Register{% endblock %}
 {% block content %}
-<div class="col-md-6 mx-auto mt-5">
-  <h3 class="mb-4">Register New Account</h3>
-  <form method="POST" action="{{ url_for('register') }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="row">
-      <div class="col-md-6 mb-3">
-        <label class="form-label">Username *</label>
-        <input class="form-control" name="username" required>
-      </div>
-      <div class="col-md-6 mb-3">
-        <label class="form-label">Email *</label>
-        <input type="email" class="form-control" name="email" required>
-      </div>
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Password *</label>
-      <input type="password" class="form-control" name="password" required>
-    </div>
-    <hr>
-    <div class="row">
-      <div class="col-md-6 mb-3">
-        <label class="form-label">Full Name</label>
-        <input class="form-control" name="full_name">
-      </div>
-      <div class="col-md-6 mb-3">
-        <label class="form-label">Company Name</label>
-        <input class="form-control" name="company_name">
-      </div>
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Business ID (Optional)</label>
-      <input class="form-control" name="business_id">
-    </div>
-    <button class="btn btn-success w-100">Create Account</button>
-  </form>
-  <p class="mt-3 text-center">
-    Already have an account? <a href="{{ url_for('login') }}">Login here</a>.
-  </p>
-</div>
+<h2>Register</h2>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+<form method="POST" action="{{ url_for('register') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-group">
+    <label for="username">Username</label>
+    <input type="text" class="form-control" id="username" name="username" required>
+  </div>
+  <div class="form-group">
+    <label for="email">Email</label>
+    <input type="email" class="form-control" id="email" name="email" required>
+  </div>
+  <div class="form-group">
+    <label for="password">Password</label>
+    <input type="password" class="form-control" id="password" name="password" required>
+  </div>
+  <div class="form-group">
+    <label for="full_name">Full Name (Optional)</label>
+    <input type="text" class="form-control" id="full_name" name="full_name">
+  </div>
+  <div class="form-group">
+    <label for="company_name">Company Name (Optional)</label>
+    <input type="text" class="form-control" id="company_name" name="company_name">
+  </div>
+  <div class="form-group">
+    <label for="business_id">Business ID (Optional)</label>
+    <input type="text" class="form-control" id="business_id" name="business_id">
+  </div>
+  <button type="submit" class="btn btn-primary">Register</button>
+</form>
+<p>Already have an account? <a href="{{ url_for('login') }}">Login here</a>.</p>
 {% endblock %}
