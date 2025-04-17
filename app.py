@@ -13,6 +13,8 @@ from utils.mailer import mail, send_password_reset_email
 
 app = Flask(__name__)
 app.config.from_object(config)
+# Stelle sicher, dass PASSWORD_RESET_TOKEN_MAX_AGE geladen wird
+app.config['PASSWORD_RESET_TOKEN_MAX_AGE'] = config.PASSWORD_RESET_TOKEN_MAX_AGE
 mail.init_app(app)
 
 serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
@@ -25,57 +27,62 @@ def get_db():
     try:
         return psycopg2.connect(app.config['DATABASE_URL'])
     except psycopg2.OperationalError as e:
-        print(f"DB‑Verbindungsfehler: {e}")
+        print(f"DB-Verbindungsfehler: {e}")
         return None
 
 def init_db():
     """Erstellt Tabellen & Default-Admin, falls noch nicht vorhanden."""
     conn = get_db()
     if not conn:
+        print("Datenbankverbindung fehlgeschlagen. Initialisierung abgebrochen.")
         return
 
-    with conn:
-        with conn.cursor() as cur:
-            # users
-            cur.execute("""
-            CREATE TABLE IF NOT EXISTS users(
-                id            SERIAL PRIMARY KEY,
-                username      VARCHAR(100) UNIQUE NOT NULL,
-                email         VARCHAR(120) UNIQUE NOT NULL,
-                password_hash TEXT        NOT NULL,
-                full_name     VARCHAR(100),
-                company_name  VARCHAR(100),
-                business_id   VARCHAR(50),
-                is_admin      BOOLEAN     DEFAULT FALSE,
-                registered_on TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-            );
-            """)
-
-            # selected_agents
-            cur.execute("""
-            CREATE TABLE IF NOT EXISTS selected_agents(
-                id          SERIAL PRIMARY KEY,
-                user_id     INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                name        VARCHAR(100) NOT NULL,
-                category    VARCHAR(50)  NOT NULL,
-                package     VARCHAR(50),
-                status      VARCHAR(20)  DEFAULT 'pending',
-                selected_on TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-            );
-            """)
-
-            # Default‑Admin
-            cur.execute("SELECT 1 FROM users WHERE is_admin LIMIT 1;")
-            if not cur.fetchone():
-                print("→ Erstelle Default‑Admin (user: admin / pw: changeme)")
-                hashed = generate_password_hash("changeme")
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                # users
                 cur.execute("""
-                    INSERT INTO users 
-                        (username, email, password_hash, full_name, is_admin)
-                    VALUES 
-                        ('admin', 'admin@example.com', %s, 'Default Admin', TRUE);
-                """, (hashed,))
-    conn.close()
+                CREATE TABLE IF NOT EXISTS users(
+                    id            SERIAL PRIMARY KEY,
+                    username      VARCHAR(100) UNIQUE NOT NULL,
+                    email         VARCHAR(120) UNIQUE NOT NULL,
+                    password_hash TEXT        NOT NULL,
+                    full_name     VARCHAR(100),
+                    company_name  VARCHAR(100),
+                    business_id   VARCHAR(50),
+                    is_admin      BOOLEAN     DEFAULT FALSE,
+                    registered_on TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+                );
+                """)
+
+                # selected_agents
+                cur.execute("""
+                CREATE TABLE IF NOT EXISTS selected_agents(
+                    id          SERIAL PRIMARY KEY,
+                    user_id     INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                    name        VARCHAR(100) NOT NULL,
+                    category    VARCHAR(50)  NOT NULL,
+                    package     VARCHAR(50),
+                    status      VARCHAR(20)  DEFAULT 'pending',
+                    selected_on TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+                );
+                """)
+
+                # Default-Admin
+                cur.execute("SELECT 1 FROM users WHERE is_admin LIMIT 1;")
+                if not cur.fetchone():
+                    print("→ Erstelle Default-Admin (user: admin / pw: changeme)")
+                    hashed = generate_password_hash("changeme")
+                    cur.execute("""
+                        INSERT INTO users 
+                            (username, email, password_hash, full_name, is_admin)
+                        VALUES 
+                            ('admin', 'admin@example.com', %s, 'Default Admin', TRUE);
+                    """, (hashed,))
+    except Exception as e:
+        print(f"Fehler bei der Datenbankinitialisierung: {e}")
+    finally:
+        conn.close()
 
 # ────────────────────────────────────────────────────────────────────
 # Routen
@@ -96,13 +103,13 @@ def register():
         business_id  = request.form.get('business_id')
 
         if not all([username, email, password]):
-            flash("Username, E‑Mail und Passwort sind Pflichtfelder.", "warning")
+            flash("Username, E-Mail und Passwort sind Pflichtfelder.", "warning")
             return render_template('register.html')
 
         hashed_pw = generate_password_hash(password)
         conn = get_db()
         if not conn:
-            flash("Datenbank‑Verbindung fehlgeschlagen.", "danger")
+            flash("Datenbank-Verbindung fehlgeschlagen.", "danger")
             return render_template('register.html')
 
         try:
@@ -113,7 +120,7 @@ def register():
                         (username, email)
                     )
                     if cur.fetchone():
-                        flash("Username oder E‑Mail existiert bereits.", "danger")
+                        flash("Username oder E-Mail existiert bereits.", "danger")
                         return render_template('register.html')
 
                     cur.execute("""
@@ -125,7 +132,7 @@ def register():
             flash("Registrierung erfolgreich – bitte einloggen.", "success")
             return redirect(url_for('login'))
         except Exception as e:
-            flash("Registrierung fehlgeschlagen (DB‑Fehler).", "danger")
+            flash("Registrierung fehlgeschlagen (DB-Fehler).", "danger")
             print(e)
         finally:
             conn.close()
@@ -143,7 +150,7 @@ def login():
 
         conn = get_db()
         if not conn:
-            flash("Datenbank‑Fehler.", "danger")
+            flash("Datenbank-Fehler.", "danger")
             return render_template('login.html')
 
         try:
@@ -166,13 +173,13 @@ def login():
 
             flash("Ungültige Zugangsdaten.", "danger")
         except Exception as e:
-            flash("Login fehlgeschlagen (DB‑Fehler).", "danger")
+            flash("Login fehlgeschlagen (DB-Fehler).", "danger")
             print(e)
         finally:
             conn.close()
     return render_template('login.html')
 
-# ---- Admin‑Login ----
+# ---- Admin-Login ----
 @app.route('/admin/login', methods=['GET','POST'])
 def admin_login():
     if request.method == 'POST':
@@ -181,7 +188,7 @@ def admin_login():
 
         conn = get_db()
         if not conn:
-            flash("Datenbank‑Fehler.", "danger")
+            flash("Datenbank-Fehler.", "danger")
             return render_template('admin_login.html')
 
         try:
@@ -201,12 +208,12 @@ def admin_login():
                     "is_admin": True,
                     "admin_logged_in": True
                 })
-                flash("Admin‑Login erfolgreich!", "success")
+                flash("Admin-Login erfolgreich!", "success")
                 return redirect(url_for('admin'))
 
-            flash("Ungültige Admin‑Daten.", "danger")
+            flash("Ungültige Admin-Daten.", "danger")
         except Exception as e:
-            flash("Admin‑Login fehlgeschlagen (DB‑Fehler).", "danger")
+            flash("Admin-Login fehlgeschlagen (DB-Fehler).", "danger")
             print(e)
         finally:
             conn.close()
@@ -219,7 +226,7 @@ def logout():
     flash("Abgemeldet.", "info")
     return redirect(url_for('login'))
 
-# ---- User‑Dashboard ----
+# ---- User-Dashboard ----
 @app.route('/dashboard', methods=['GET','POST'])
 def dashboard():
     if 'user_id' not in session or session.get('is_admin'):
@@ -229,7 +236,7 @@ def dashboard():
     user_id = session['user_id']
     conn = get_db()
     if not conn:
-        flash("Datenbank‑Fehler.", "danger")
+        flash("Datenbank-Fehler.", "danger")
         return render_template('dashboard.html')
 
     if request.method == 'POST':
@@ -259,7 +266,7 @@ def dashboard():
                             (user_id,category,name,status)
                             VALUES (%s,'email',%s,'pending')
                         """, (user_id, mail_agent))
-            flash("Auswahl gespeichert – wartet auf Admin‑Freigabe.", "success")
+            flash("Auswahl gespeichert – wartet auf Admin-Freigabe.", "success")
             return redirect(url_for('dashboard'))
         except Exception as e:
             flash("Speichern fehlgeschlagen.", "danger")
@@ -287,7 +294,7 @@ def dashboard():
         selected_agents=selected
     )
 
-# ---- Admin‑Dashboard ----
+# ---- Admin-Dashboard ----
 @app.route('/admin')
 def admin():
     if not session.get('admin_logged_in'):
@@ -354,7 +361,7 @@ def activate_agent(agent_id):
         finally:
             conn.close()
     else:
-        flash("DB‑Fehler.", "danger")
+        flash("DB-Fehler.", "danger")
     return redirect(url_for('admin'))
 
 # ---- Passwort ändern (User) ----
@@ -400,9 +407,87 @@ def change_password():
 
     return render_template('change_password.html')
 
+# ---- Passwort-Reset anfordern ----
+@app.route('/request_password_reset', methods=['GET', 'POST'])
+def request_password_reset():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        if not email:
+            flash("E-Mail ist erforderlich.", "warning")
+            return render_template('request_password_reset.html')
+
+        conn = get_db()
+        if not conn:
+            flash("Datenbank-Fehler.", "danger")
+            return render_template('request_password_reset.html')
+
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id, username, email, full_name FROM users WHERE email=%s", (email,))
+                user = cur.fetchone()
+            if user:
+                # Benutzerobjekt erstellen
+                user_dict = {'id': user[0], 'username': user[1], 'email': user[2], 'full_name': user[3]}
+                # Token für Passwort-Reset generieren
+                token = serializer.dumps(email, salt='password-reset-salt')
+                # E-Mail senden
+                send_password_reset_email(user_dict, token)
+                flash("Ein Link zum Zurücksetzen des Passworts wurde an Ihre E-Mail gesendet.", "success")
+            else:
+                flash("E-Mail-Adresse nicht gefunden.", "danger")
+        except Exception as e:
+            flash("Fehler beim Senden des Reset-Links.", "danger")
+            print(f"Fehler beim Passwort-Reset: {e}")
+        finally:
+            conn.close()
+        return redirect(url_for('login'))
+    return render_template('request_password_reset.html')
+
+# ---- Passwort zurücksetzen ----
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        # Token verifizieren
+        email = serializer.loads(token, salt='password-reset-salt', max_age=app.config['PASSWORD_RESET_TOKEN_MAX_AGE'])
+    except Exception as e:
+        flash("Der Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen.", "danger")
+        print(f"Token-Fehler: {e}")
+        return redirect(url_for('request_password_reset'))
+
+    if request.method == 'POST':
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+
+        if not all([password, confirm_password]):
+            flash("Alle Felder ausfüllen.", "warning")
+            return render_template('reset_password.html')
+
+        if password != confirm_password:
+            flash("Passwörter stimmen nicht überein.", "danger")
+            return render_template('reset_password.html')
+
+        conn = get_db()
+        if not conn:
+            flash("Datenbank-Fehler.", "danger")
+            return render_template('reset_password.html')
+
+        try:
+            with conn:
+                with conn.cursor() as cur:
+                    hashed = generate_password_hash(password)
+                    cur.execute("UPDATE users SET password_hash=%s WHERE email=%s", (hashed, email))
+            flash("Passwort erfolgreich zurückgesetzt. Bitte einloggen.", "success")
+            return redirect(url_for('login'))
+        except Exception as e:
+            flash("Fehler beim Zurücksetzen des Passworts.", "danger")
+            print(f"Fehler beim Passwort-Reset: {e}")
+        finally:
+            conn.close()
+    return render_template('reset_password.html')
+
 # ────────────────────────────────────────────────────────────────────
 if __name__ == '__main__':
     with app.app_context():
         init_db()
     port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=True)  # Debug-Modus aktiviert
