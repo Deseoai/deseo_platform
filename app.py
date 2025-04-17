@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash, session
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf import CSRFProtect  # Korrigierter Import
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_mail import Mail, Message
@@ -219,7 +219,7 @@ def dashboard():
     
     return render_template('dashboard.html', greeting_name=greeting_name, selected_agents=selected_agents)
 
-# Profilseite (NEU)
+# Profilseite
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
     if not session.get('user_id'):
