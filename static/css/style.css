@@ -1,11 +1,11 @@
-/* === Modernes Dark Mode Design === */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+/* === Kreatives Dark Mode Design === */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 
 body {
-  background-color: #000; /* Schwarzer Hintergrund */
-  color: #d1d5db; /* Hellgrau für Text */
-  font-family: 'Montserrat', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-  font-size: 18px;
+  background: linear-gradient(135deg, #000 0%, #1a0a1a 100%); /* Subtiler Gradient-Hintergrund */
+  color: #d1d5db;
+  font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
   font-weight: 400;
   line-height: 1.6;
   margin: 0;
@@ -18,20 +18,21 @@ body {
 
 /* Navbar */
 .navbar {
-  background-color: #1a1a1a !important;
-  border-bottom: 1px solid #333;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  background-color: transparent !important;
   padding: 1.5rem 2rem;
   position: sticky;
   top: 0;
   z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .navbar-brand {
-  font-size: 2.25rem;
-  font-weight: 700;
-  color: #ff4d88 !important; /* Pink für den Brand-Text */
-  letter-spacing: 1.5px;
+  font-size: 2rem;
+  font-weight: 500;
+  color: #ff4d88 !important;
+  letter-spacing: 1px;
   transition: color 0.3s ease;
 }
 
@@ -39,99 +40,128 @@ body {
   color: #ff80ab !important;
 }
 
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
 .nav-link {
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 400; /* Nicht fett */
   color: #d1d5db !important;
-  margin: 0 1rem;
-  transition: color 0.3s ease, transform 0.3s ease;
+  position: relative;
+  text-decoration: none;
+  transition: color 0.3s ease;
 }
 
 .nav-link:hover {
   color: #ff4d88 !important;
-  transform: scale(1.05);
+}
+
+/* Kreativer Hover-Effekt: Unterstreichungsanimation */
+.nav-link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  background-color: #ff4d88;
+  bottom: -4px;
+  left: 0;
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
 }
 
 /* Überschrift "Willkommen bei Deseo Platform" */
 h1.welcome-text {
   color: #fff; /* Weiße Schriftfarbe */
-  font-size: 3.5rem;
-  font-weight: 700;
+  font-size: 3rem;
+  font-weight: 500;
   text-align: center;
-  margin: 2rem 0;
+  margin: 0;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  text-shadow: 0 2px 8px rgba(255, 77, 136, 0.3);
+  letter-spacing: 3px;
+  background: linear-gradient(90deg, #ff4d88, #ff80ab);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 20px rgba(255, 77, 136, 0.5); /* Leichter Glow-Effekt */
 }
 
 /* Buttons */
 .btn-primary, .btn-secondary {
-  font-size: 1.5rem;
-  font-weight: 600;
-  padding: 15px 40px; /* Einheitliche Größe für beide Buttons */
-  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 10px 25px; /* Kleinere, elegantere Buttons */
+  border-radius: 25px;
   transition: all 0.3s ease;
-  margin: 0 1rem;
-  display: inline-block;
   text-transform: uppercase;
   letter-spacing: 1px;
+  border: none;
 }
 
 .btn-primary {
-  background-color: #ff4d88; /* Pink für Login */
-  border-color: #ff4d88;
+  background: linear-gradient(90deg, #ff4d88, #ff80ab);
   color: #000;
 }
 
 .btn-primary:hover {
-  background-color: #ff80ab;
-  border-color: #ff80ab;
-  transform: scale(1.05);
+  background: linear-gradient(90deg, #ff80ab, #ff4d88);
+  transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(255, 77, 136, 0.5);
 }
 
 .btn-secondary {
-  background-color: #333; /* Dunkelgrau für Register */
-  border-color: #333;
+  background: linear-gradient(90deg, #333, #444);
   color: #d1d5db;
 }
 
 .btn-secondary:hover {
-  background-color: #444;
-  border-color: #444;
-  color: #fff;
-  transform: scale(1.05);
+  background: linear-gradient(90deg, #444, #555);
+  transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(255, 77, 136, 0.3);
 }
 
 /* Container für zentrierte Inhalte */
 .container {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 3rem 2rem;
+  padding: 4rem 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
+  justify-content: center;
   flex-grow: 1;
+  gap: 2rem;
+}
+
+/* Button-Container für bessere Verteilung */
+.button-container {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 /* Language Switcher (Übersetzen Button) */
 .language-switcher {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  font-size: 1rem;
-  font-weight: 500;
+  top: 1.5rem;
+  right: 2rem;
+  font-size: 0.9rem;
+  font-weight: 400;
 }
 
 .language-switcher select {
-  background-color: #1a1a1a;
+  background: linear-gradient(90deg, #1a1a1a, #222);
   color: #d1d5db;
   border: 1px solid #444;
   border-radius: 5px;
-  padding: 8px 12px;
-  font-size: 1rem;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  font-family: 'Inter', sans-serif;
   transition: all 0.3s ease;
 }
 
@@ -144,40 +174,50 @@ h1.welcome-text {
 /* Responsive Anpassungen */
 @media (max-width: 768px) {
   body {
-    font-size: 16px;
+    font-size: 14px;
   }
 
   h1.welcome-text {
-    font-size: 2.5rem;
-    margin: 1.5rem 0;
+    font-size: 2rem;
+    letter-spacing: 2px;
+  }
+
+  .navbar {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 1rem;
   }
 
   .navbar-brand {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
+  }
+
+  .nav-links {
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
   .nav-link {
-    font-size: 1.1rem;
-    margin: 0.5rem 0;
+    font-size: 0.9rem;
   }
 
   .btn-primary, .btn-secondary {
-    font-size: 1.25rem;
-    padding: 12px 30px;
-    margin: 0.5rem 0;
+    font-size: 0.9rem;
+    padding: 8px 20px;
   }
 
   .container {
     padding: 2rem 1rem;
+    gap: 1.5rem;
   }
 
   .language-switcher {
-    top: 0.5rem;
-    right: 0.5rem;
+    top: 1rem;
+    right: 1rem;
   }
 
   .language-switcher select {
-    font-size: 0.9rem;
-    padding: 6px 10px;
+    font-size: 0.8rem;
+    padding: 5px 8px;
   }
 }
