@@ -4,97 +4,53 @@
   <meta charset="UTF-8">
   <title>{% block title %}Deseo Platform{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- Bootstrap 5 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-  <!-- Dein Dark‑Theme‑Stylesheet -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+        rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static','style.css') }}">
   {% block head_extra %}{% endblock %}
 </head>
 <body data-bs-theme="dark">
-
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-  <div class="container-fluid">
-    <a class="navbar-brand d-flex align-items-center" href="{{ url_for('home') }}">
-      <img src="{{ url_for('static', filename='images/deseo_logo.png') }}"
-           alt="Deseo Logo" style="height:40px;margin-right:10px;">
-      <span class="text-white">Platform</span>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container">
+    <a class="navbar-brand" href="{{ url_for('home') }}">
+      <img src="{{ url_for('static','images/deseo_logo.png') }}"
+           alt="Deseo" height="40">
+      Deseo Platform
     </a>
-
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-            data-bs-target="#navbarNav" aria-controls="navbarNav"
-            aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-
-    <div class="collapse navbar-collapse" id="navbarNav">
+    <div class="collapse navbar-collapse">
       <ul class="navbar-nav ms-auto">
-
-        {% if 'user_id' in session %}
+        {% if session.user_id %}
           <li class="nav-item">
-            <span class="navbar-text me-3">
-              Welcome, {{ session.get('full_name', session.get('username')) }}!
-            </span>
+            <span class="nav-link">Hi, {{ session.full_name or session.username }}!</span>
           </li>
-
-          {% if session.get('is_admin') %}
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('admin') }}">Admin Dashboard</a>
-            </li>
+          {% if session.is_admin %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('admin') }}">Admin</a></li>
           {% else %}
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
-            </li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a></li>
           {% endif %}
-
-          <!-- ✅ NEU – Passwort ändern -->
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('change_password') }}">
-              Change&nbsp;Password
-            </a>
-          </li>
-
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
-          </li>
-
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Logout</a></li>
         {% else %}
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('login') }}">Login</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('register') }}">Register</a>
-          </li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Login</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('register') }}">Register</a></li>
         {% endif %}
-
       </ul>
     </div>
   </div>
 </nav>
-
-<div class="container my-4">
-
-  {# Flash‑Meldungen #}
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category or 'info' }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<div class="container py-4">
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      {% for cat,msg in msgs %}
+        <div class="alert alert-{{cat}} alert-dismissible">
+          {{msg}}
+          <button class="btn-close" data-bs-dismiss="alert"></button>
         </div>
       {% endfor %}
     {% endif %}
   {% endwith %}
-
   {% block content %}{% endblock %}
 </div>
-
-<footer class="text-center text-muted py-4 mt-5">
-  <p>&copy; {{ now().year }} Deseo AI. All rights reserved.</p>
-</footer>
-
+<footer class="text-center text-muted py-3">&copy; 2025 Deseo AI</footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 {% block scripts_extra %}{% endblock %}
 </body>
