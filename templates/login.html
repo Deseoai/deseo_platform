@@ -6,31 +6,39 @@
   <div class="col-md-6 col-lg-4">
     <div class="card shadow-lg">
       <div class="card-body p-4">
-        <h2 class="card-title text-center mb-4">User Login</h2>
+        <h2 class="card-title text-center mb-4">Login</h2>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
         <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="mb-3">
             <label for="username" class="form-label">Username</label>
-            <input type="text" class="form-control" id="username" name="username" required autofocus>
+            <input type="text" class="form-control" id="username" name="username" required>
           </div>
           <div class="mb-3">
             <label for="password" class="form-label">Password</label>
             <input type="password" class="form-control" id="password" name="password" required>
           </div>
           <div class="d-grid">
-            <button type="submit" class="btn btn-success btn-lg">Login</button>
+            <button type="submit" class="btn btn-primary btn-lg">Login</button>
           </div>
         </form>
         <hr class="my-4">
         <div class="text-center">
-            <p class="mb-1">
-                <a href="{{ url_for('request_password_reset') }}">Forgot Password?</a>
-            </p>
-            <p class="mb-0">
-                Don't have an account? <a href="{{ url_for('register') }}">Register here</a>
-            </p>
-            <p class="mt-2">
-                Are you an Admin? <a href="{{ url_for('admin_login') }}">Admin Login</a>
-            </p>
+          <p class="mb-1">
+            <a href="{{ url_for('request_password_reset') }}">Forgot Password?</a>
+          </p>
+          <p class="mb-0">
+            Don't have an account? <a href="{{ url_for('register') }}">Register</a>
+          </p>
         </div>
       </div>
     </div>
