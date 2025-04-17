@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash, session
-from flask_wtf import CSRFProtect  # Korrigierter Import
+from flask_wtf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_mail import Mail, Message
@@ -15,10 +15,12 @@ app.config.from_object('config.Config')
 csrf = CSRFProtect(app)
 mail = Mail(app)
 
+# Konfiguriere Flask-Limiter mit Dateispeicher
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="file:///tmp/ratelimits"
 )
 
 # Datenbankverbindung
@@ -551,6 +553,3 @@ def delete_agent(agent_id):
         app.logger.error(f"Delete agent error: {str(e)}")
     
     return redirect(url_for('dashboard'))
-
-if __name__ == '__main__':
-    app.run(debug=True)
