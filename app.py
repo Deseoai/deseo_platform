@@ -15,7 +15,7 @@ app.config.from_object('config.Config')
 csrf = CSRFProtect(app)
 mail = Mail(app)
 
-# Konfiguriere Flask-Limiter mit In-Memory-Speicher (vorübergehend)
+# Konfiguriere Flask-Limiter mit In-Memory-Speicher
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
@@ -335,3 +335,221 @@ def request_password_reset():
         email = request.form.get('email')
         
         if not email:
+            flash('Email is required.', 'danger')
+            return redirect(url_for('request_password_reset'))
+        
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute('SELECT id, username FROM users WHERE email = %s', (email,))
+            user = cur.fetchone()
+            
+            if user:
+                token = secrets.token_urlsafe(32)
+                expires_at = datetime.utcnow().timestamp() + app.config['PASSWORD_RESET_TOKEN_MAX_AGE']
+                cur.execute(
+                    'INSERT INTO password_resets (user_id, token, expires_at) VALUES (%s, %s, %s)',
+                    (user['id'], token, expires_at)
+                )
+                conn.commit()
+                
+                reset_link = url_for('reset_password', token=token, _external=True)
+                msg = Message(
+                    'Password Reset Request',
+                    recipients=[email],
+                    body=f'Hello {user["username"]},\n\nTo reset your password, click the following link: {reset_link}\n\nThis link will expire in 1 hour.\n\nIf you did not request a password reset, please ignore this email.\n\nBest regards,\nDeseo Team'
+                )
+                mail.send(msg)
+                flash('A password reset link has been sent to your email.', 'success')
+            else:
+                flash('No account found with that email address.', 'danger')
+            
+            cur.close()
+            conn.close()
+        except Exception as e:
+            flash('An error occurred while processing your request. Please try again later.', 'danger')
+            app.logger.error(f"Password reset request error: {str(e)}")
+    
+    return render_template('request_password_reset.html')
+
+# Passwort zurücksetzen
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
+def reset_password(token):
+    if session.get('user_id'):
+        if session.get('is_admin'):
+            return redirect(url_for('admin'))
+        return redirect(url_for('dashboard'))
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        current_time = datetime.utcnow().timestamp()
+        cur.execute(
+            'SELECT user_id FROM password_resets WHERE token = %s AND expires_at > %s',
+            (token, current_time)
+        )
+        reset_request = cur.fetchone()
+        
+        if not reset_request:
+            cur.close()
+            conn.close()
+            flash('Invalid or expired password reset token.', 'danger')
+            return redirect(url_for('request_password_reset'))
+        
+        if request.method == 'POST':
+            password = request.form.get('password')
+            confirm_password = request.form.get('confirm_password')
+            
+            if not password or not confirm_password:
+                flash('Both fields are required.', 'danger')
+                return redirect(url_for('reset_password', token=token))
+            
+            if password != confirm_password:
+                flash('Passwords do not match.', 'danger')
+                return redirect(url_for('reset_password', token=token))
+            
+            password_hash = generate_password_hash(password)
+            cur.execute('UPDATE users SET password_hash = %s WHERE id = %s', (password_hash, reset_request['user_id']))
+            cur.execute('DELETE FROM password_resets WHERE token = %s', (token,))
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            flash('Your password has been reset successfully. Please log in.', 'success')
+            return redirect(url_for('login'))
+        
+        cur.close()
+        conn.close()
+    except Exception as e:
+        flash('An error occurred while resetting your password. Please try again later.', 'danger')
+        app.logger.error(f"Password reset error: {str(e)}")
+        return redirect(url_for('request_password_reset'))
+    
+    return render_template('reset_password.html')
+
+# Admin-Dashboard
+@app.route('/admin')
+def admin():
+    if not session.get('user_id') or not session.get('is_admin'):
+        flash('Please log in as an admin to access this page.', 'danger')
+        return redirect(url_for('admin_login'))
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute('''
+            SELECT a.id, u.username, u.full_name, a.name, a.category, a.package, a.status
+            FROM agents a
+            JOIN users u ON a.user_id = u.id
+            ORDER BY a.status, u.username
+        ''')
+        agents = cur.fetchall()
+        cur.close()
+        conn.close()
+        return render_template('admin_dashboard.html', agents=agents)
+    except Exception as e:
+        flash('An error occurred while loading the admin dashboard. Please try again later.', 'danger')
+        app.logger.error(f"Admin dashboard error: {str(e)}")
+        return redirect(url_for('admin_login'))
+
+# Benutzerübersicht (Admin)
+@app.route('/admin/users')
+def admin_users():
+    if not session.get('user_id') or not session.get('is_admin'):
+        flash('Please log in as an admin to access this page.', 'danger')
+        return redirect(url_for('admin_login'))
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute('SELECT id, username, email, full_name, company_name, business_id, is_admin, created_at FROM users ORDER BY created_at DESC')
+        users = cur.fetchall()
+        cur.close()
+        conn.close()
+        return render_template('admin_users.html', users=users)
+    except Exception as e:
+        flash('An error occurred while loading the user list. Please try again later.', 'danger')
+        app.logger.error(f"Admin users error: {str(e)}")
+        return redirect(url_for('admin'))
+
+# Agent aktivieren (Admin)
+@app.route('/admin/activate/<int:agent_id>', methods=['POST'])
+def activate_agent(agent_id):
+    if not session.get('user_id') or not session.get('is_admin'):
+        flash('Please log in as an admin to perform this action.', 'danger')
+        return redirect(url_for('admin_login'))
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute('UPDATE agents SET status = %s WHERE id = %s AND status = %s', ('active', agent_id, 'pending'))
+        conn.commit()
+        if cur.rowcount == 0:
+            flash('Agent not found or already activated.', 'warning')
+        else:
+            flash('Agent activated successfully!', 'success')
+        cur.close()
+        conn.close()
+    except Exception as e:
+        flash('An error occurred while activating the agent. Please try again later.', 'danger')
+        app.logger.error(f"Agent activation error: {str(e)}")
+    
+    return redirect(url_for('admin'))
+
+# Benutzer löschen (Admin)
+@app.route('/admin/delete-user/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    if not session.get('user_id') or not session.get('is_admin'):
+        flash('Please log in as an admin to perform this action.', 'danger')
+        return redirect(url_for('admin_login'))
+    
+    if user_id == session.get('user_id'):
+        flash('You cannot delete your own account.', 'danger')
+        return redirect(url_for('admin_users'))
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute('DELETE FROM agents WHERE user_id = %s', (user_id,))
+        cur.execute('DELETE FROM password_resets WHERE user_id = %s', (user_id,))
+        cur.execute('DELETE FROM users WHERE id = %s', (user_id,))
+        conn.commit()
+        if cur.rowcount == 0:
+            flash('User not found.', 'warning')
+        else:
+            flash('User deleted successfully!', 'success')
+        cur.close()
+        conn.close()
+    except Exception as e:
+        flash('An error occurred while deleting the user. Please try again later.', 'danger')
+        app.logger.error(f"Delete user error: {str(e)}")
+    
+    return redirect(url_for('admin_users'))
+
+# Agent löschen
+@app.route('/delete-agent/<int:agent_id>', methods=['POST'])
+def delete_agent(agent_id):
+    if not session.get('user_id'):
+        flash('Please log in to perform this action.', 'danger')
+        return redirect(url_for('login'))
+    
+    if session.get('is_admin'):
+        return redirect(url_for('admin'))
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute('DELETE FROM agents WHERE id = %s AND user_id = %s AND status = %s', (agent_id, session['user_id'], 'pending'))
+        conn.commit()
+        if cur.rowcount == 0:
+            flash('Agent not found or cannot be deleted.', 'warning')
+        else:
+            flash('Agent deleted successfully!', 'success')
+        cur.close()
+        conn.close()
+    except Exception as e:
+        flash('An error occurred while deleting the agent. Please try again later.', 'danger')
+        app.logger.error(f"Delete agent error: {str(e)}")
+    
+    return redirect(url_for('dashboard'))
