@@ -1,14 +1,16 @@
-# app.py  – vollständige, korrigierte Version
+# app.py – vollständige, korrigierte Version
 from flask import (
     Flask, render_template, request, redirect,
     session, url_for, flash
 )
 import psycopg2, os
 from werkzeug.security import generate_password_hash, check_password_hash
-from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
+from itsdangerous import URLSafeTimedSerializer
+from datetime import datetime
 
 from config import config
-from utils.mailer import mail, send_password_reset_email
+from utils.mailer import mail, send_password_reset_email  # Dein Mail‑Modul
+
 
 app = Flask(__name__)
 app.config.from_object(config)
@@ -16,7 +18,14 @@ mail.init_app(app)
 
 serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
-# ────────────────────────── DB‑Hilfen ──────────────────────────
+
+# ────────── Context Processor für Templates ──────────
+@app.context_processor
+def inject_now():
+    return {'now': datetime.utcnow}
+
+
+# ──────────────────────────  DB‑Hilfen  ──────────────────────────
 def get_db():
     try:
         return psycopg2.connect(app.config['DATABASE_URL'])
@@ -26,15 +35,16 @@ def get_db():
 
 
 def init_db():
+    """Legt Tabellen an und erzeugt einen Default‑Admin, falls nötig."""
     conn = get_db()
     if not conn:
         return
 
     with conn, conn.cursor() as cur:
-        # Tabelle users
+        # ---------- users ----------
         cur.execute("""
         CREATE TABLE IF NOT EXISTS users(
-            id SERIAL PRIMARY KEY,
+            id            SERIAL PRIMARY KEY,
             username      VARCHAR(100) UNIQUE NOT NULL,
             email         VARCHAR(120) UNIQUE NOT NULL,
             password_hash TEXT        NOT NULL,
@@ -43,8 +53,10 @@ def init_db():
             business_id   VARCHAR(50),
             is_admin      BOOLEAN     DEFAULT FALSE,
             registered_on TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-        );""")
-        # Tabelle selected_agents
+        );
+        """)
+
+        # ---------- selected_agents ----------
         cur.execute("""
         CREATE TABLE IF NOT EXISTS selected_agents(
             id          SERIAL PRIMARY KEY,
@@ -54,8 +66,10 @@ def init_db():
             package     VARCHAR(50),
             status      VARCHAR(20)  DEFAULT 'pending',
             selected_on TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-        );""")
-        # Default-Admin
+        );
+        """)
+
+        # ---------- Default‑Admin anlegen ----------
         cur.execute("SELECT 1 FROM users WHERE is_admin LIMIT 1;")
         if not cur.fetchone():
             print("→ Erstelle Default‑Admin (user: admin / pw: changeme)")
@@ -67,21 +81,23 @@ def init_db():
                         'Default Admin', TRUE);
             """, (hashed,))
 
-# ────────────────────────── Routen ──────────────────────────────
+
+# ──────────────────────────  Routen  ──────────────────────────
 @app.route('/')
 def home():
     return render_template('welcome.html')
 
-# Registrierung
+
+# ----- Registrierung -----
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username      = request.form.get('username')
-        email         = request.form.get('email')
-        password      = request.form.get('password')
-        full_name     = request.form.get('full_name')
-        company_name  = request.form.get('company_name')
-        business_id   = request.form.get('business_id')
+        username     = request.form.get('username')
+        email        = request.form.get('email')
+        password     = request.form.get('password')
+        full_name    = request.form.get('full_name')
+        company_name = request.form.get('company_name')
+        business_id  = request.form.get('business_id')
 
         if not all([username, email, password]):
             flash("Username, E‑Mail und Passwort sind Pflichtfelder.", "warning")
@@ -104,22 +120,24 @@ def register():
                     return render_template('register.html')
 
                 cur.execute("""
-                    INSERT INTO users 
-                    (username, email, password_hash,
-                     full_name, company_name, business_id)
+                    INSERT INTO users (username, email, password_hash,
+                                       full_name, company_name, business_id)
                     VALUES (%s,%s,%s,%s,%s,%s);
                 """, (username, email, hashed_pw,
-                       full_name, company_name, business_id))
+                      full_name, company_name, business_id))
                 flash("Registrierung erfolgreich – bitte einloggen.", "success")
                 return redirect(url_for('login'))
+
         except psycopg2.Error as e:
             flash("Registrierung fehlgeschlagen (DB‑Fehler).", "danger")
             print(e)
         finally:
             conn.close()
+
     return render_template('register.html')
 
-# Login
+
+# ----- Login -----
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -137,209 +155,241 @@ def login():
         try:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT id, username, password_hash, full_name, is_admin
+                    SELECT id, username, email, password_hash,
+                           full_name, is_admin
                     FROM users WHERE username=%s
                 """, (username,))
                 u = cur.fetchone()
-            if u and check_password_hash(u[2], password):
+
+            if u and check_password_hash(u[3], password):
                 session.update({
                     "user_id":   u[0],
                     "username":  u[1],
-                    "full_name": u[3],
-                    "is_admin":  u[4]
+                    "full_name": u[4],
+                    "is_admin":  u[5]
                 })
                 flash("Login erfolgreich!", "success")
-                return redirect(url_for('admin' if u[4] else 'dashboard'))
+                return redirect(url_for('admin' if u[5] else 'dashboard'))
+
             flash("Ungültige Zugangsdaten.", "danger")
+
         except psycopg2.Error as e:
             flash("Login fehlgeschlagen (DB‑Fehler).", "danger")
             print(e)
         finally:
             conn.close()
+
     return render_template('login.html')
 
-# Admin‑Login
+
+# ----- Admin‑Login -----
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+
         conn = get_db()
         if not conn:
             flash("DB‑Fehler.", "danger")
             return render_template('admin_login.html')
+
         try:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT id, username, password_hash, full_name
-                    FROM users WHERE username=%s AND is_admin=TRUE
+                    SELECT id, username, email, password_hash,
+                           full_name, is_admin
+                    FROM users
+                    WHERE username=%s AND is_admin=TRUE
                 """, (username,))
                 adm = cur.fetchone()
-            if adm and check_password_hash(adm[2], password):
+
+            if adm and check_password_hash(adm[3], password):
                 session.update({
-                    "user_id": adm[0],
-                    "username": adm[1],
-                    "full_name": adm[3],
-                    "is_admin": True,
+                    "user_id":        adm[0],
+                    "username":       adm[1],
+                    "full_name":      adm[4],
+                    "is_admin":       True,
                     "admin_logged_in": True
                 })
                 flash("Admin‑Login erfolgreich!", "success")
                 return redirect(url_for('admin'))
+
             flash("Ungültige Admin‑Daten.", "danger")
+
         except psycopg2.Error as e:
             flash("Admin‑Login DB‑Fehler.", "danger")
             print(e)
         finally:
             conn.close()
+
     return render_template('admin_login.html')
 
-# Logout
+
+# ----- Logout -----
 @app.route('/logout')
 def logout():
     session.clear()
     flash("Abgemeldet.", "info")
     return redirect(url_for('login'))
 
-# User‑Dashboard
+
+# ----- User‑Dashboard -----
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
     if 'user_id' not in session or session.get('is_admin'):
         flash("Bitte als User einloggen.", "warning")
         return redirect(url_for('login'))
+
     user_id = session['user_id']
     conn = get_db()
     if not conn:
         flash("DB‑Fehler.", "danger")
         return render_template('dashboard.html')
+
     if request.method == 'POST':
         try:
             with conn.cursor() as cur:
                 # Inbound
                 for val in request.form.getlist('inbound_agents'):
-                    name, pkg = val.split('|')
-                    cur.execute(
-                        "INSERT INTO selected_agents (user_id,category,name,package,status) VALUES (%s,'inbound',%s,%s,'pending')",
-                        (user_id, name, pkg)
-                    )
+                    name, package = val.split('|')
+                    cur.execute("""
+                        INSERT INTO selected_agents
+                        (user_id,category,name,package,status)
+                        VALUES (%s,'inbound',%s,%s,'pending')
+                    """, (user_id, name, package))
                 # Outbound
-                for agent in request.form.getlist('outbound_agents'):
-                    cur.execute(
-                        "INSERT INTO selected_agents (user_id,category,name,status) VALUES (%s,'outbound',%s,'pending')",
-                        (user_id, agent)
-                    )
-                # Email-Agent
+                for nm in request.form.getlist('outbound_agents'):
+                    cur.execute("""
+                        INSERT INTO selected_agents
+                        (user_id,category,name,status)
+                        VALUES (%s,'outbound',%s,'pending')
+                    """, (user_id, nm))
+                # Mail‑Agent
                 mail_agent = request.form.get('email_agent')
                 if mail_agent:
-                    cur.execute(
-                        "INSERT INTO selected_agents (user_id,category,name,status) VALUES (%s,'email',%s,'pending')",
-                        (user_id, mail_agent)
-                    )
+                    cur.execute("""
+                        INSERT INTO selected_agents
+                        (user_id,category,name,status)
+                        VALUES (%s,'email',%s,'pending')
+                    """, (user_id, mail_agent))
+
                 conn.commit()
                 flash("Auswahl gespeichert – wartet auf Admin‑Freigabe.", "success")
+
             return redirect(url_for('dashboard'))
+
         except psycopg2.Error as e:
             conn.rollback()
             flash("Speichern fehlgeschlagen.", "danger")
             print(e)
         finally:
             conn.close()
-    # GET – Agenten laden
-    selected = []
-    db2 = get_db()
-    if db2:
-        with db2.cursor() as cur:
-            cur.execute(
-                "SELECT name,category,package,status FROM selected_agents WHERE user_id=%s ORDER BY selected_on DESC",
-                (user_id,)
-            )
-            selected = cur.fetchall()
-        db2.close()
-    return render_template('dashboard.html', greeting_name=session.get('full_name', session['username']), selected_agents=selected)
 
-# Admin‑Dashboard
+    # GET → aktuelle Auswahl
+    with get_db() as gconn:
+        selected = []
+        if gconn:
+            with gconn.cursor() as cur:
+                cur.execute("""
+                    SELECT name,category,package,status
+                    FROM selected_agents
+                    WHERE user_id=%s
+                    ORDER BY selected_on DESC
+                """, (user_id,))
+                selected = cur.fetchall()
+
+    return render_template(
+        'dashboard.html',
+        greeting_name=session.get('full_name', session['username']),
+        selected_agents=selected
+    )
+
+
+# ----- Admin‑Dashboard -----
 @app.route('/admin')
 def admin():
     if not session.get('admin_logged_in'):
         flash("Nur für Admins.", "warning")
         return redirect(url_for('admin_login'))
+
     agents = []
-    db3 = get_db()
-    if db3:
-        with db3.cursor() as cur:
-            cur.execute(
-                """
-                    SELECT a.id, u.username, u.full_name, a.name, a.category, a.package, a.status
-                    FROM selected_agents a JOIN users u ON a.user_id=u.id ORDER BY a.selected_on DESC
-                """
-            )
-            agents = cur.fetchall()
-        db3.close()
+    with get_db() as conn:
+        if conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT a.id, u.username, u.full_name,
+                           a.name, a.category, a.package, a.status
+                    FROM selected_agents a
+                    JOIN users u ON a.user_id=u.id
+                    ORDER BY a.selected_on DESC
+                """)
+                agents = cur.fetchall()
+
     return render_template('admin_dashboard.html', agents=agents)
 
-# User-Management für Admin
+
 @app.route('/admin/users')
 def admin_users():
     if not session.get('admin_logged_in'):
         flash("Nur für Admins.", "warning")
         return redirect(url_for('admin_login'))
+
     users = []
-    db4 = get_db()
-    if db4:
-        with db4.cursor() as cur:
-            cur.execute(
-                "SELECT id,username,email,full_name,company_name,business_id,is_admin,registered_on FROM users ORDER BY id"
-            )
-            users = cur.fetchall()
-        db4.close()
-    return render_template('admin_users.html', users=users)
-
-# Anfrage Passwort-Reset
-@app.route('/request_password_reset', methods=['GET', 'POST'])
-def request_password_reset():
-    # Implementierung folgt
-    return render_template('request_password_reset.html')
-
-# Reset-Passwort
-@app.route('/reset-password/<token>', methods=['GET', 'POST'])
-def reset_password(token):
-    # Implementierung folgt
-    return render_template('reset_password.html')
-
-# Passwort ändern (eingeloggte User)
-@app.route('/change-password', methods=['GET', 'POST'])
-def change_password():
-    if 'user_id' not in session:
-        flash("Bitte erst einloggen.", "warning")
-        return redirect(url_for('login'))
-    if request.method == 'POST':
-        current   = request.form.get('current_password')
-        new_pw    = request.form.get('new_password')
-        repeat_pw = request.form.get('repeat_password')
-        if not all([current, new_pw, repeat_pw]):
-            flash("Alle Felder ausfüllen.", "warning")
-            return render_template('change_password.html')
-        if new_pw != repeat_pw:
-            flash("Neue Passwörter stimmen nicht überein.", "danger")
-            return render_template('change_password.html')
-        conn = get_db()
+    with get_db() as conn():
         if conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT password_hash FROM users WHERE id=%s", (session['user_id'],))
-                db_hash, = cur.fetchone()
-                if not check_password_hash(db_hash, current):
-                    flash("Aktuelles Passwort falsch.", "danger")
-                    conn.close()
-                    return render_template('change_password.html')
-                cur.execute("UPDATE users SET password_hash=%s WHERE id=%s", (generate_password_hash(new_pw), session['user_id']))
-                conn.commit()
-            conn.close()
-            flash("Passwort erfolgreich geändert.", "success")
-            return redirect(url_for('dashboard' if not session.get('is_admin') else 'admin'))
-    return render_template('change_password.html')
+                cur.execute("""
+                    SELECT id,username,email,full_name,
+                           company_name,business_id,is_admin,registered_on
+                    FROM users ORDER BY id
+                """)
+                users = cur.fetchall()
 
-# App‑Start
+    return render_template('admin_users.html', users=users)
+
+
+@app.route('/admin/activate/<int:agent_id>', methods=['POST'])
+def activate_agent(agent_id):
+    if not session.get('admin_logged_in'):
+        flash("Nur für Admins.", "warning")
+        return redirect(url_for('admin_login'))
+
+    with get_db() as conn:
+        if not conn:
+            flash("DB‑Fehler.", "danger")
+            return redirect(url_for('admin'))
+
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE selected_agents
+                    SET status='active' WHERE id=%s
+                """, (agent_id,))
+            conn.commit()
+            flash(f"Agent {agent_id} aktiviert.", "success")
+
+        except psycopg2.Error as e:
+            conn.rollback()
+            flash("Aktivierung fehlgeschlagen.", "danger")
+            print(e)
+
+    return redirect(url_for('admin'))
+
+
+# ----- Passwort‑Reset‑Platzhalter -----
+@app.route('/request_password_reset')
+def request_password_reset():
+    return render_template('request_password_reset.html')
+
+@app.route('/reset-password/<token>')
+def reset_password(token):
+    return render_template('reset_password.html')
+
+
+# ─────────────────────  App‑Start  ──────────────────────
 if __name__ == "__main__":
     with app.app_context():
-        init_db()
+        init_db()  # Tabellen & Default‑Admin
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
