@@ -32,6 +32,16 @@ def get_db_connection():
     )
     return conn
 
+# Error-Handler für 404
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+# Error-Handler für 500
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('500.html'), 500
+
 # Startseite
 @app.route('/')
 def home():
@@ -39,7 +49,7 @@ def home():
 
 # Benutzer-Login
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("10 per minute")
+@limiter.limit("10 per minute", methods=["POST"])  # Nur POST-Anfragen limitieren
 def login():
     if session.get('user_id'):
         if session.get('is_admin'):
@@ -81,7 +91,7 @@ def login():
 
 # Admin-Login
 @app.route('/admin/login', methods=['GET', 'POST'])
-@limiter.limit("10 per minute")
+@limiter.limit("10 per minute", methods=["POST"])  # Nur POST-Anfragen limitieren
 def admin_login():
     if session.get('user_id') and session.get('is_admin'):
         return redirect(url_for('admin'))
@@ -118,7 +128,7 @@ def admin_login():
 
 # Registrierung
 @app.route('/register', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("5 per minute", methods=["POST"])  # Nur POST-Anfragen limitieren
 def register():
     if session.get('user_id'):
         if session.get('is_admin'):
@@ -325,7 +335,7 @@ def change_password():
 
 # Passwort-Reset anfordern
 @app.route('/request-password-reset', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("5 per minute", methods=["POST"])  # Nur POST-Anfragen limitieren
 def request_password_reset():
     if session.get('user_id'):
         if session.get('is_admin'):
@@ -375,7 +385,7 @@ def request_password_reset():
 
 # Passwort zurücksetzen
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("5 per minute", methods=["POST"])  # Nur POST-Anfragen limitieren
 def reset_password(token):
     if session.get('user_id'):
         if session.get('is_admin'):
