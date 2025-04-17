@@ -4,6 +4,7 @@
 <h2>Dein Dashboard</h2>
 
 <form method="POST" action="{{ url_for('dashboard') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <h4>Inbound Agents</h4>
   <select class="form-select mb-3" name="inbound_agents" multiple>
     <option value="agentA|small">Agent A (small)</option>
@@ -21,7 +22,7 @@
   <h4>Email Agent</h4>
   <select class="form-select mb-3" name="email_agent">
     <option value="">— none —</option>
-    <option value="emailAgent1">Email Agent 1</option>
+    <option value="emailAgent1">Email Agent 1</option>
     <!-- usw. -->
   </select>
 
@@ -34,19 +35,29 @@
 <table class="table table-striped">
   <thead>
     <tr>
-      <th>Name</th><th>Kategorie</th><th>Package</th><th>Status</th>
+      <th>Name</th><th>Kategorie</th><th>Package</th><th>Status</th><th>Aktion</th>
     </tr>
   </thead>
   <tbody>
-  {% for name, category, package, status in selected_agents %}
+  {% for agent in selected_agents %}
     <tr>
-      <td>{{ name }}</td>
-      <td>{{ category }}</td>
-      <td>{{ package or '—' }}</td>
-      <td>{{ status }}</td>
+      <td>{{ agent.name }}</td>
+      <td>{{ agent.category }}</td>
+      <td>{{ agent.package or '—' }}</td>
+      <td>{{ agent.status }}</td>
+      <td>
+        {% if agent.status == 'pending' %}
+          <form method="POST" action="{{ url_for('delete_agent', agent_id=agent.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Möchtest du diesen Agent wirklich löschen?');">Löschen</button>
+          </form>
+        {% else %}
+          —
+        {% endif %}
+      </td>
     </tr>
   {% else %}
-    <tr><td colspan="4">Keine Einträge.</td></tr>
+    <tr><td colspan="5">Keine Einträge.</td></tr>
   {% endfor %}
   </tbody>
 </table>
