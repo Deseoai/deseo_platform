@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()  # Lädt lokale .env Variablen
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'unsicherer_key'
+    SECRET_KEY = os.environ.get('SECRET_KEY') or '8f42a73054b1e2d3c7a9b8e5f6d0c1a2b3e4f5a6b7c8d9e0f1a2b3c4d5e6f7'
     DATABASE_URL = os.environ.get('DATABASE_URL')
     if not DATABASE_URL:
         raise ValueError("DATABASE_URL ist nicht definiert!")
@@ -28,4 +28,4 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
 
-config = Config()
+# Entferne die Instanzierung: config = Config()
